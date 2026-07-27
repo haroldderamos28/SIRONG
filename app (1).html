@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sirong — Naga parking, shared</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root{
+    --sky:#5AACD6; --sky-deep:#2E6E8E; --green:#8FE0AC; --green-deep:#1F6B44;
+    --gold:#D89A3E; --cream:#F0F8FB; --muted:#7C97A3; --line:#D6E9F0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#DCEEF5; font-family:'Inter',sans-serif; display:flex; justify-content:center; padding:24px 12px;}
+  .app{background:var(--cream); width:100%; max-width:420px; border-radius:16px; overflow:hidden; border:1px solid var(--line); box-shadow:0 12px 30px rgba(46,110,142,0.15);}
+  .header{background:var(--sky); padding:14px 16px;}
+  .brand{display:flex; align-items:center; gap:8px;}
+  .badge{width:26px; height:26px; border-radius:6px; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:14px; color:var(--sky-deep);}
+  .brand-name{font-family:'Fraunces',serif; color:#fff; font-size:19px;}
+  .brand-sub{font-size:11px; color:#EAF6FB; margin-left:2px;}
+  .fiesta-row{margin-top:8px; display:flex; align-items:center; justify-content:space-between;}
+  .fiesta-label{font-size:11px; color:#EAF6FB;}
+  .toggle{cursor:pointer; width:34px; height:18px; border-radius:20px; background:#3D8FB8; position:relative; flex-shrink:0; transition:background 0.15s;}
+  .toggle.on{background:var(--green);}
+  .toggle-dot{position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition:left 0.15s;}
+  .toggle.on .toggle-dot{left:18px;}
+  .content{padding:16px; min-height:420px;}
+  .chip{display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:20px; font-size:12px; cursor:pointer; border:1px solid var(--line); background:#fff; color:#4A6673; user-select:none;}
+  .chip.active{background:var(--green); color:var(--green-deep); border-color:var(--green);}
+  .chip-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+  .card{background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px;}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .card-left{display:flex; gap:8px;}
+  .pin{color:var(--muted); margin-top:2px; flex-shrink:0;}
+  .card-address{margin:0; font-size:14px; font-weight:600; color:var(--sky-deep);}
+  .card-owner{margin:2px 0 0; font-size:12px; color:var(--muted);}
+  .card-price{font-family:'Fraunces',serif; font-size:17px; color:var(--sky-deep); white-space:nowrap;}
+  .card-price small{font-size:11px; font-family:'Inter',sans-serif; color:var(--muted);}
+  .badges{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0;}
+  .b-instant{font-size:11px; background:var(--green); color:var(--green-deep); padding:3px 8px; border-radius:20px; font-weight:600;}
+  .b-fiesta{font-size:11px; background:#FCEBD2; color:#9A6A1E; padding:3px 8px; border-radius:20px; font-weight:600;}
+  .b-feat{font-size:11px; background:var(--cream); color:#4A6673; padding:3px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;}
+  .notes{font-size:12px; color:#5C7986; margin:0 0 8px;}
+  .btn{cursor:pointer; border:none; border-radius:8px; padding:10px 14px; font-family:'Inter',sans-serif; font-weight:600; font-size:13px; width:100%;}
+  .btn-primary{background:var(--sky); color:#fff;}
+  .btn-green{background:var(--green); color:var(--green-deep);}
+  .btn-ink{background:var(--sky-deep); color:#fff;}
+  .field{margin-bottom:10px;}
+  .field label{font-size:12px; color:#4A6673; display:block; margin-bottom:4px;}
+  .field input, .field select{width:100%; box-sizing:border-box; padding:9px 10px; border-radius:7px; border:1px solid var(--line); font-family:'Inter',sans-serif; font-size:13px; background:#fff;}
+  .checkline{font-size:12px; color:#4A6673; display:flex; align-items:center; gap:6px; margin-bottom:10px;}
+  h2.title{font-family:'Fraunces',serif; font-size:16px; margin:0 0 10px; color:var(--sky-deep);}
+  .empty{font-size:13px; color:var(--muted);}
+  .nav{display:flex; border-top:1px solid var(--line); background:#fff;}
+  .nav button{flex:1; background:none; border:none; cursor:pointer; padding:10px 0; display:flex; flex-direction:column; align-items:center; gap:3px; color:#A9C2CC; font-family:'Inter',sans-serif;}
+  .nav button.active{color:var(--green-deep);}
+  .nav button span{font-size:11px;}
+  .nav button.active span{font-weight:600;}
+  .overlay{position:fixed; inset:0; background:rgba(46,110,142,0.45); display:flex; align-items:flex-end; justify-content:center; padding:20px 12px; z-index:50;}
+  .overlay.hidden{display:none;}
+  .modal{background:#fff; border-radius:12px; padding:16px; width:100%; max-width:420px;}
+  .modal-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .modal-top p{font-family:'Fraunces',serif; font-size:15px; margin:0; color:var(--sky-deep);}
+  .time-row{display:flex; gap:8px;}
+  .time-row input{flex:1;}
+  .pay-note{font-size:11px; color:var(--muted); margin:0;}
+  .safety-note{font-size:11px; color:#9A6A1E; background:#FCEBD2; border-radius:8px; padding:8px 10px; margin:8px 0 0;}
+
+  .map-box{width:100%; height:180px; border-radius:10px; border:1px solid var(--line); margin-bottom:8px; overflow:hidden;}
+  .map-hint{font-size:11px; color:var(--muted); margin:0 0 10px;}
+  .loc-btn{width:100%; padding:9px 10px; border-radius:7px; border:1px solid var(--line); background:#fff; color:var(--sky-deep); font-size:12px; font-weight:600; cursor:pointer; margin-bottom:8px;}
+  .leaflet-popup-content{font-family:'Inter',sans-serif; font-size:12px;}
+  .popup-title{font-family:'Fraunces',serif; font-weight:600; font-size:13px; color:var(--sky-deep); margin:0 0 4px;}
+  .popup-price{color:var(--muted); margin:0 0 6px;}
+  .popup-btn{background:var(--sky); color:#fff; border:none; border-radius:6px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer;}
+  .distance-tag{font-size:11px; color:var(--muted);}
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--sky-deep); color:#fff; padding:8px 14px; border-radius:8px; font-size:12px; z-index:60; opacity:0; transition:opacity 0.2s;}
+  .toast.show{opacity:1;}
+  .ticket{display:flex; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:10px;}
+  .ticket-main{flex:1; padding:14px 16px;}
+  .ticket-eyebrow{margin:0; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);}
+  .ticket-addr{margin:2px 0 0; font-size:16px; font-weight:600; color:var(--sky-deep); font-family:'Fraunces',serif;}
+  .ticket-time{margin:6px 0 0; font-size:13px; color:#5A6C73;}
+  .ticket-divider{width:1px; border-left:2px dashed var(--line);}
+  .ticket-side{width:96px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:10px 8px;}
+  .ticket-price{font-family:'Fraunces',serif; font-size:19px; color:var(--sky-deep);}
+  .ticket-cancel{font-size:11px; background:none; border:1px solid var(--line); border-radius:6px; padding:3px 8px; cursor:pointer; color:var(--muted);}
+  svg.ic{width:13px; height:13px; flex-shrink:0;}
+
+  .card-photo{width:100%; height:160px; border-radius:8px; object-fit:cover; margin-bottom:6px; background:var(--cream); display:block; cursor:pointer;}
+  .photo-placeholder{width:100%; height:80px; border-radius:8px; margin-bottom:10px; background:var(--cream); border:1px dashed var(--line); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px;}
+  .thumb-row{display:flex; gap:6px; margin-bottom:10px; overflow-x:auto;}
+  .thumb{width:52px; height:52px; border-radius:6px; object-fit:cover; cursor:pointer; border:1px solid var(--line); flex-shrink:0;}
+  .size-tag{font-size:11px; background:#EAF3F7; color:var(--sky-deep); padding:3px 8px; border-radius:20px; font-weight:600;}
+  .lightbox{position:fixed; inset:0; background:rgba(20,30,35,0.9); z-index:100; display:flex; align-items:center; justify-content:center; flex-direction:column;}
+  .lightbox.hidden{display:none;}
+  .lightbox img{max-width:92vw; max-height:70vh; border-radius:8px; object-fit:contain;}
+  .lightbox-nav{display:flex; align-items:center; gap:20px; margin-top:14px;}
+  .lightbox-nav button{background:rgba(255,255,255,0.15); color:#fff; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; font-size:16px;}
+  .lightbox-close{position:absolute; top:20px; right:20px; color:#fff; cursor:pointer;}
+  .lightbox-count{color:#EAF6FB; font-size:12px; margin-top:8px;}
+  .thumb-picker{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;}
+  .thumb-picker img{width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid var(--line);}
+  .file-field{width:100%; box-sizing:border-box; padding:9px 10px; border-radius:7px; border:1px dashed var(--line); font-size:12px; background:#fff; color:var(--muted);}
+  .stars{display:flex; gap:2px; margin-top:6px;}
+  .star{cursor:pointer; width:16px; height:16px; color:var(--line);}
+  .star.filled{color:var(--gold);}
+  .rating-row{display:flex; align-items:center; gap:6px; margin-top:6px;}
+  .rating-label{font-size:11px; color:var(--muted);}
+  .report-link{font-size:11px; background:none; border:none; color:var(--sky-deep); cursor:pointer; text-decoration:underline; padding:0; margin-top:8px;}
+
+  .verify-panel{border-radius:10px; padding:12px; margin-bottom:14px; font-size:12px;}
+  .verify-panel.pending{background:#FCEBD2; color:#9A6A1E;}
+  .verify-panel.verified{background:#E4F8EB; color:var(--green-deep);}
+  .verify-panel.none{background:#EAF3F7; color:var(--sky-deep);}
+  .verify-badge{display:inline-flex; align-items:center; gap:3px; font-size:10px; background:var(--green); color:var(--green-deep); padding:2px 7px; border-radius:20px; font-weight:700; margin-left:6px;}
+
+  .account-row{display:flex; align-items:center; justify-content:space-between; margin-top:8px;}
+  .account-label{font-size:11px; color:#EAF6FB;}
+  .account-btn{background:rgba(255,255,255,0.18); color:#fff; border:none; border-radius:20px; padding:4px 12px; font-size:11px; font-weight:600; cursor:pointer;}
+  .auth-tabs{display:flex; gap:8px; margin-bottom:14px;}
+  .auth-tab{flex:1; text-align:center; padding:8px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; background:#F0F8FB; color:var(--muted);}
+  .auth-tab.active{background:var(--sky); color:#fff;}
+  .auth-error{font-size:12px; color:#A8362A; margin:0 0 8px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="brand">
+      <div class="badge">S</div>
+      <span class="brand-name">Sirong</span>
+      <span class="brand-sub">· Naga</span>
+    </div>
+    <div class="fiesta-row">
+      <span class="fiesta-label">Peñafrancia parking mode</span>
+      <span id="fiestaToggle" class="toggle"><span class="toggle-dot"></span></span>
+    </div>
+    <div class="account-row" id="accountRow"></div>
+  </div>
+
+  <div class="content" id="content"></div>
+
+  <div class="nav">
+    <button data-tab="search" class="active">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span>Search</span>
+    </button>
+    <button data-tab="list">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      <span>List space</span>
+    </button>
+    <button data-tab="bookings">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 12h18" stroke-dasharray="2 2"/></svg>
+      <span>Bookings</span>
+    </button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <div class="modal-top">
+      <p id="modalTitle">Book</p>
+      <svg id="modalClose" style="cursor:pointer; color:#7C97A3;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+    <div class="field"><input id="bfDate" type="date" /></div>
+    <div class="time-row" style="margin-bottom:10px;">
+      <input id="bfStart" type="time" />
+      <input id="bfEnd" type="time" />
+    </div>
+    <p class="pay-note" id="bfPay">Payment: GCash</p>
+    <p class="safety-note">Sirong connects you with the space owner directly — please confirm the spot and access details with them before paying.</p>
+    <button class="btn btn-green" id="bfConfirm" style="margin-top:10px;">Confirm booking</button>
+  </div>
+</div>
+
+<div class="lightbox hidden" id="lightbox">
+  <svg class="lightbox-close" id="lightboxClose" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  <img id="lightboxImg" src="" alt="Listing photo" />
+  <div class="lightbox-nav">
+    <button id="lightboxPrev">‹</button>
+    <span class="lightbox-count" id="lightboxCount"></span>
+    <button id="lightboxNext">›</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay hidden" id="authOverlay">
+  <div class="modal">
+    <div class="modal-top">
+      <p id="authTitle">Log in</p>
+      <svg id="authClose" style="cursor:pointer; color:#7C97A3;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin">Log in</div>
+      <div class="auth-tab" id="tabSignup">Gumawa ng account</div>
+    </div>
+    <p class="auth-error" id="authError" style="display:none;"></p>
+    <div class="field" id="authNameField" style="display:none;"><input id="authName" placeholder="Pangalan mo" /></div>
+    <div class="field"><input id="authEmail" type="email" placeholder="Email" /></div>
+    <div class="field"><input id="authPassword" type="password" placeholder="Password" /></div>
+    <button class="btn btn-primary" id="authSubmit">Log in</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://meawvaorrillebhkxgew.supabase.co";
+const SUPABASE_KEY = "sb_publishable_w7csw-kv0LdflWDPikkp3Q_NcbqESfM";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function mapUser(u){
+  if (!u) return null;
+  return { id: u.id, email: u.email, displayName: (u.user_metadata && u.user_metadata.display_name) || u.email.split('@')[0] };
+}
+
+async function signUp(email, password, displayName){
+  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: displayName } } });
+  return { user: data && data.user ? mapUser(data.user) : null, error };
+}
+
+async function signIn(email, password){
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  return { user: data && data.user ? mapUser(data.user) : null, error };
+}
+
+async function signOutUser(){
+  await sb.auth.signOut();
+  state.user = null;
+  state.profile = null;
+  render();
+}
+
+async function ensureProfile(user){
+  const { data } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (data) return data;
+  const { data: created, error } = await sb.from('profiles').insert({ id: user.id, display_name: user.displayName }).select().maybeSingle();
+  if (error){ console.error(error); return null; }
+  return created;
+}
+
+async function fetchProfilesMap(){
+  const { data, error } = await sb.from('profiles').select('id, verified');
+  if (error){ console.error(error); return {}; }
+  const map = {};
+  data.forEach(p => { map[p.id] = p.verified; });
+  return map;
+}
+
+async function submitVerificationPhoto(userId, photoDataUrl){
+  const { data, error } = await sb.from('profiles').update({ id_photo: photoDataUrl, submitted_for_verification: true }).eq('id', userId).select().maybeSingle();
+  if (error){ console.error(error); showToast('Hindi na-submit, subukan ulit'); return null; }
+  return data;
+}
+</script>
+<script>
+const ICONS = {
+  covered: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12a10 10 0 0120 0"/><path d="M12 12v8"/><path d="M6 12v6a2 2 0 002 2"/><path d="M18 12v6a2 2 0 01-2 2"/></svg>',
+  gated: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  moto: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6l2-6h-3l-2-4H9l2 4"/></svg>',
+  cctv: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="14" height="10" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M16 10l6-3v10l-6-3"/></svg>',
+  pin: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+};
+
+const FEATURES = [
+  { id: "covered", label: "May bubong" },
+  { id: "gated", label: "Secured/gated" },
+  { id: "moto", label: "Motor ok" },
+  { id: "cctv", label: "May CCTV" },
+];
+
+const SEED_LISTINGS = [
+  { id: "seed-1", address: "Near SM City Naga", price: 20, features: ["covered","gated","cctv"], notes: "Beside the residential gate, ask for kuya guard.", owner: "Jen", instant: true, fiesta: true, payment: "GCash", lat: 13.6218, lng: 123.1948, size_info: "1 SUV/van", photos: null },
+  { id: "seed-2", address: "Naga CBD, near Panganiban Dr.", price: 15, features: ["moto"], notes: "Open driveway, park nose-in.", owner: "Bobby", instant: false, fiesta: false, payment: "Cash", lat: 13.6192, lng: 123.1814, size_info: "Motor lang", photos: null },
+  { id: "seed-3", address: "Near Ateneo de Naga University", price: 15, features: ["gated","moto","cctv"], notes: "Gate closes 10pm, message before then.", owner: "Tin", instant: true, fiesta: false, payment: "GCash or Cash", lat: 13.6304, lng: 123.1867, size_info: "1 sedan/compact car", photos: null },
+];
+
+const NAGA_CENTER = [13.6218, 123.1948];
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+function resizeImage(file, maxWidth){
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = () => resolve(null);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+function rowToBooking(r){
+  return { id: r.id, listingId: r.listing_id, address: r.address, renter: r.renter, date: r.booking_date, start: r.start_time, end: r.end_time, total: r.total, instant: r.instant, rating: r.rating, userId: r.user_id };
+}
+function bookingToRow(b){
+  return { id: b.id, listing_id: b.listingId, address: b.address, renter: b.renter, booking_date: b.date, start_time: b.start, end_time: b.end, total: b.total, instant: b.instant, rating: b.rating ?? null, user_id: b.userId };
+}
+
+async function fetchListings(){
+  const { data, error } = await sb.from('listings').select('*').order('created_at', { ascending: false });
+  if (error){ console.error(error); showToast('Hindi ma-load ang listings'); return []; }
+  return data;
+}
+
+async function insertListing(listing){
+  const { data, error } = await sb.from('listings').insert(listing).select();
+  if (error){ console.error(error); showToast('Hindi na-save, subukan ulit'); return null; }
+  return data[0];
+}
+
+async function updateListingRow(id, fields){
+  const { data, error } = await sb.from('listings').update(fields).eq('id', id).select();
+  if (error){ console.error(error); showToast('Hindi na-update, subukan ulit'); return null; }
+  return data[0];
+}
+
+async function deleteListingRow(id){
+  const { error } = await sb.from('listings').delete().eq('id', id);
+  if (error){ console.error(error); showToast('Hindi ma-delete, subukan ulit'); return false; }
+  return true;
+}
+
+async function fetchBookings(){
+  const { data, error } = await sb.from('bookings').select('*').order('created_at', { ascending: false });
+  if (error){ console.error(error); showToast('Hindi ma-load ang bookings'); return []; }
+  return data.map(rowToBooking);
+}
+
+async function insertBooking(booking){
+  const { data, error } = await sb.from('bookings').insert(bookingToRow(booking)).select();
+  if (error){ console.error(error); showToast('Hindi na-book, subukan ulit'); return null; }
+  return rowToBooking(data[0]);
+}
+
+async function deleteBookingRow(id){
+  const { error } = await sb.from('bookings').delete().eq('id', id);
+  if (error){ console.error(error); showToast('Hindi ma-cancel, subukan ulit'); return false; }
+  return true;
+}
+
+async function updateBookingRating(id, rating){
+  const { error } = await sb.from('bookings').update({ rating }).eq('id', id);
+  if (error){ console.error(error); showToast('Hindi na-save ang rating'); return false; }
+  return true;
+}
+
+let state = {
+  tab: 'search',
+  listings: [],
+  bookings: [],
+  activeFilters: [],
+  fiestaMode: false,
+  bookingTarget: null,
+  loading: true,
+  formPin: null,
+  userLocation: null,
+  editingListing: null,
+  user: null,
+  profile: null,
+  verifiedMap: {},
+  authMode: 'login',
+  pendingAction: null,
+};
+
+let searchMapInstance = null;
+let formMapInstance = null;
+let formMarker = null;
+
+function toRad(v){ return v * Math.PI / 180; }
+function distanceKm(lat1, lng1, lat2, lng2){
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+function featureIcon(id){ return ICONS[id] || ''; }
+function featureLabel(id){ const f = FEATURES.find(x=>x.id===id); return f ? f.label : id; }
+
+function renderSearch(){
+  let filtered = state.listings
+    .filter(l => state.activeFilters.every(f => l.features.includes(f)))
+    .filter(l => !state.fiestaMode || l.fiesta);
+
+  if (state.userLocation){
+    filtered = filtered.map(l => ({ ...l, _dist: (l.lat && l.lng) ? distanceKm(state.userLocation.lat, state.userLocation.lng, l.lat, l.lng) : null }));
+    filtered.sort((a,b) => (a._dist ?? 999) - (b._dist ?? 999));
+  }
+
+  let html = `<button class="loc-btn" id="findNearMe">📍 Find spots near me</button>`;
+  html += `<div class="map-box" id="searchMap"></div>`;
+
+  html += `<div class="chip-row">` + FEATURES.map(f => {
+    const active = state.activeFilters.includes(f.id);
+    return `<span class="chip ${active?'active':''}" data-filter="${f.id}">${featureIcon(f.id)} ${f.label}</span>`;
+  }).join('') + `</div>`;
+
+  if (filtered.length === 0){
+    html += `<p class="empty">Walang spot na match sa filters mo.</p>`;
+  }
+
+  html += filtered.map(l => `
+    <div class="card">
+      ${(() => { const photos = (l.photos && l.photos.length) ? l.photos : (l.photo ? [l.photo] : []); return photos.length
+        ? `<img class="card-photo" src="${photos[0]}" alt="${l.address}" onclick="window.__openLightbox('${l.id}',0)" />${photos.length > 1 ? `<div class="thumb-row">${photos.map((p,i) => `<img class="thumb" src="${p}" onclick="window.__openLightbox('${l.id}',${i})" />`).join('')}</div>` : ''}`
+        : `<div class="photo-placeholder">No photo yet</div>`; })()}
+      <div class="card-top">
+        <div class="card-left">
+          <span class="pin">${ICONS.pin}</span>
+          <div>
+            <p class="card-address">${l.address}</p>
+            <p class="card-owner">Host: ${l.owner}${l._dist != null ? ` · <span class="distance-tag">${l._dist.toFixed(1)} km away</span>` : ''}</p>
+          </div>
+        </div>
+        <span class="card-price">₱${l.price}<small>/hr</small></span>
+      </div>
+      <div class="badges">
+        ${l.instant ? '<span class="b-instant">Instant book</span>' : ''}
+        ${l.fiesta ? '<span class="b-fiesta">Fiesta spot</span>' : ''}
+        ${l.size_info ? `<span class="size-tag">${l.size_info}</span>` : ''}
+        ${l.features.map(fid => `<span class="b-feat">${featureIcon(fid)}${featureLabel(fid)}</span>`).join('')}
+      </div>
+      ${l.notes ? `<p class="notes">${l.notes}</p>` : ''}
+      <button class="btn btn-primary" data-book="${l.id}">${l.instant ? 'Book agad — instant' : 'Send booking request'}</button>
+      ${state.user && l.user_id === state.user.id ? `
+      <div style="display:flex; gap:16px; margin-top:8px;">
+        <button class="report-link" data-edit-listing="${l.id}">Edit listing</button>
+        <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">Delete</button>
+      </div>` : ''}
+    </div>
+  `).join('');
+
+  return html;
+}
+
+let lightboxState = { photos: [], index: 0 };
+window.__openLightbox = function(listingId, index){
+  const listing = state.listings.find(l => l.id === listingId);
+  if (!listing) return;
+  const photos = (listing.photos && listing.photos.length) ? listing.photos : (listing.photo ? [listing.photo] : []);
+  if (!photos.length) return;
+  lightboxState = { photos, index };
+  renderLightbox();
+  document.getElementById('lightbox').classList.remove('hidden');
+};
+function renderLightbox(){
+  document.getElementById('lightboxImg').src = lightboxState.photos[lightboxState.index];
+  document.getElementById('lightboxCount').textContent = `${lightboxState.index + 1} / ${lightboxState.photos.length}`;
+}
+window.__lightboxNav = function(dir){
+  lightboxState.index = (lightboxState.index + dir + lightboxState.photos.length) % lightboxState.photos.length;
+  renderLightbox();
+};
+
+function initSearchMap(){
+  const el = document.getElementById('searchMap');
+  if (!el) return;
+  if (searchMapInstance){ searchMapInstance.remove(); searchMapInstance = null; }
+  const center = state.userLocation ? [state.userLocation.lat, state.userLocation.lng] : NAGA_CENTER;
+  searchMapInstance = L.map('searchMap', { zoomControl: false }).setView(center, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(searchMapInstance);
+
+  if (state.userLocation){
+    L.circleMarker([state.userLocation.lat, state.userLocation.lng], { radius: 8, color: '#5AACD6', fillColor: '#5AACD6', fillOpacity: 0.9 })
+      .addTo(searchMapInstance).bindPopup('You are here');
+  }
+
+  const visible = state.listings
+    .filter(l => state.activeFilters.every(f => l.features.includes(f)))
+    .filter(l => !state.fiestaMode || l.fiesta)
+    .filter(l => l.lat && l.lng);
+
+  visible.forEach(l => {
+    const marker = L.marker([l.lat, l.lng]).addTo(searchMapInstance);
+    const popupHtml = `<p class="popup-title">${l.address}</p><p class="popup-price">₱${l.price}/hr · ${l.owner}</p><button class="popup-btn" onclick="window.__bookFromMap('${l.id}')">Book</button>`;
+    marker.bindPopup(popupHtml);
+  });
+}
+
+window.__bookFromMap = function(id){
+  const listing = state.listings.find(l => l.id === id);
+  if (listing) openBooking(id);
+};
+
+function renderListForm(){
+  const e = state.editingListing;
+  return `
+    <h2 class="title">${e ? 'I-edit ang listing' : 'Ipa-rent ang space mo'}</h2>
+    ${e ? `<button type="button" class="report-link" id="cancelEdit">← Kanselahin ang edit</button>` : ''}
+    <p class="map-hint">Naka-login bilang <strong>${state.user ? state.user.displayName : ''}</strong></p>
+    <div class="field"><label>Address / landmark</label><input id="fAddress" placeholder="Near SM Naga" value="${e ? e.address : ''}" /></div>
+    <div class="field">
+      <label>Pin ang eksaktong lokasyon</label>
+      <p class="map-hint">I-click ang mapa para markahan ang space mo, o gamitin ang button.</p>
+      <button type="button" class="loc-btn" id="useMyLocation">📍 Use my current location</button>
+      <div class="map-box" id="formMap"></div>
+    </div>
+    <div class="field"><label>Mga litrato ng space (optional, pwede multiple)</label><input class="file-field" id="fPhoto" type="file" accept="image/*" multiple />
+      ${e && ((e.photos && e.photos.length) || e.photo) ? `<p class="map-hint">May existing photos na — mag-upload lang kung gusto mo palitan.</p>` : ''}
+    </div>
+    <div class="field">
+      <label>Sukat ng space</label>
+      <select id="fSize">
+        <option value="">-- Piliin --</option>
+        <option value="Motor lang" ${e && e.size_info === 'Motor lang' ? 'selected' : ''}>Motor lang</option>
+        <option value="1 sedan/compact car" ${e && e.size_info === '1 sedan/compact car' ? 'selected' : ''}>1 sedan/compact car</option>
+        <option value="1 SUV/van" ${e && e.size_info === '1 SUV/van' ? 'selected' : ''}>1 SUV/van</option>
+        <option value="2+ na sasakyan" ${e && e.size_info === '2+ na sasakyan' ? 'selected' : ''}>2+ na sasakyan</option>
+      </select>
+    </div>
+    <div class="field"><label>Presyo per hour (₱)</label><input id="fPrice" type="number" min="0" step="1" placeholder="15" value="${e ? e.price : ''}" /></div>
+    <div class="field">
+      <label>Features</label>
+      <div class="chip-row" id="fFeatures">
+        ${FEATURES.map(f => `<span class="chip ${e && e.features && e.features.includes(f.id) ? 'active' : ''}" data-formfeat="${f.id}">${featureIcon(f.id)} ${f.label}</span>`).join('')}
+      </div>
+    </div>
+    <label class="checkline"><input type="checkbox" id="fInstant" ${!e || e.instant ? 'checked' : ''} /> Instant book (walang hintay na approval)</label>
+    <label class="checkline"><input type="checkbox" id="fFiesta" ${e && e.fiesta ? 'checked' : ''} /> Available during Peñafrancia Fiesta</label>
+    <div class="field"><label>Access notes (optional)</label><input id="fNotes" placeholder="Gate code, landmark, ask for guard" value="${e && e.notes ? e.notes : ''}" /></div>
+    <div class="field">
+      <label>Preferred payment</label>
+      <select id="fPayment">
+        <option ${e && e.payment === 'GCash' ? 'selected' : ''}>GCash</option>
+        <option ${e && e.payment === 'Cash' ? 'selected' : ''}>Cash</option>
+        <option ${e && e.payment === 'GCash or Cash' ? 'selected' : ''}>GCash or Cash</option>
+      </select>
+    </div>
+    <p class="safety-note">By listing, you're agreeing to let drivers park based on the details above — please only mark dates/times you're sure are free.</p>
+    <button class="btn btn-ink" id="fSubmit">${e ? 'Update listing' : '+ I-list ang space'}</button>
+  `;
+}
+
+function initFormMap(){
+  const el = document.getElementById('formMap');
+  if (!el) return;
+  if (formMapInstance){ formMapInstance.remove(); formMapInstance = null; formMarker = null; }
+  const start = state.formPin ? [state.formPin.lat, state.formPin.lng] : NAGA_CENTER;
+  formMapInstance = L.map('formMap', { zoomControl: false }).setView(start, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(formMapInstance);
+
+  if (state.formPin){
+    formMarker = L.marker(start, { draggable: true }).addTo(formMapInstance);
+    formMarker.on('dragend', () => { const p = formMarker.getLatLng(); state.formPin = { lat: p.lat, lng: p.lng }; });
+  }
+
+  formMapInstance.on('click', (e) => {
+    state.formPin = { lat: e.latlng.lat, lng: e.latlng.lng };
+    if (formMarker){ formMarker.setLatLng(e.latlng); }
+    else { formMarker = L.marker(e.latlng, { draggable: true }).addTo(formMapInstance); formMarker.on('dragend', () => { const p = formMarker.getLatLng(); state.formPin = { lat: p.lat, lng: p.lng }; }); }
+  });
+}
+
+function renderBookings(){
+  const mine = state.user ? state.bookings.filter(b => b.userId === state.user.id) : [];
+  let html = `<h2 class="title">Mga booking ko</h2>`;
+  if (mine.length === 0){
+    html += `<p class="empty">Wala ka pang booking.</p>`;
+  }
+  html += mine.map(b => `
+    <div class="ticket">
+      <div class="ticket-main">
+        <p class="ticket-eyebrow">Booking</p>
+        <p class="ticket-addr">${b.address}</p>
+        <p class="ticket-time">${b.date} · ${b.start}–${b.end}</p>
+        <div class="rating-row">
+          <span class="rating-label">Rate this spot:</span>
+          <span class="stars" data-rate="${b.id}">
+            ${[1,2,3,4,5].map(n => `<svg class="star ${ (b.rating||0) >= n ? 'filled' : ''}" data-star="${n}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>`).join('')}
+          </span>
+        </div>
+        <button class="report-link" data-report="${b.id}">Report a problem</button>
+      </div>
+      <div class="ticket-divider"></div>
+      <div class="ticket-side">
+        <span class="ticket-price">₱${b.total}</span>
+        <button class="ticket-cancel" data-cancel="${b.id}">Cancel</button>
+      </div>
+    </div>
+  `).join('');
+  return html;
+}
+
+function loginRequiredBlock(actionText){
+  return `<div style="padding:20px 0; text-align:center;">
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Kailangan mag-login muna para ${actionText}.</p>
+    <button class="btn btn-primary" id="goLogin" style="max-width:200px; margin:0 auto;">Log in / Sign up</button>
+  </div>`;
+}
+
+function renderAccountRow(){
+  const row = document.getElementById('accountRow');
+  if (!row) return;
+  if (state.user){
+    row.innerHTML = `<span class="account-label">Hi, ${state.user.displayName}</span><button class="account-btn" id="logoutBtn">Logout</button>`;
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.onclick = signOutUser;
+  } else {
+    row.innerHTML = `<span class="account-label">Hindi naka-login</span><button class="account-btn" id="loginBtnHeader">Log in</button>`;
+    const loginBtn = document.getElementById('loginBtnHeader');
+    if (loginBtn) loginBtn.onclick = () => openAuthModal();
+  }
+}
+
+function render(){
+  const content = document.getElementById('content');
+  if (state.loading){
+    content.innerHTML = '<p class="empty">Loading...</p>';
+    renderAccountRow();
+    return;
+  }
+  if (state.tab === 'search') content.innerHTML = renderSearch();
+  else if (state.tab === 'list') content.innerHTML = state.user ? renderListForm() : loginRequiredBlock('makapag-list ng space');
+  else content.innerHTML = state.user ? renderBookings() : loginRequiredBlock('makita ang mga booking mo');
+
+  if (state.tab === 'search') setTimeout(initSearchMap, 0);
+  if (state.tab === 'list' && state.user) setTimeout(initFormMap, 0);
+
+  document.querySelectorAll('.nav button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === state.tab);
+  });
+
+  const ft = document.getElementById('fiestaToggle');
+  ft.classList.toggle('on', state.fiestaMode);
+
+  renderAccountRow();
+  attachContentListeners();
+}
+
+function attachContentListeners(){
+  document.querySelectorAll('[data-filter]').forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.filter;
+      state.activeFilters = state.activeFilters.includes(id)
+        ? state.activeFilters.filter(x => x !== id)
+        : [...state.activeFilters, id];
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-book]').forEach(el => {
+    el.onclick = () => {
+      if (!state.user){
+        state.pendingAction = { type: 'book', listingId: el.dataset.book };
+        openAuthModal();
+        return;
+      }
+      openBooking(el.dataset.book);
+    };
+  });
+
+  document.querySelectorAll('[data-formfeat]').forEach(el => {
+    el.onclick = () => { el.classList.toggle('active'); };
+  });
+
+  const findNear = document.getElementById('findNearMe');
+  if (findNear) findNear.onclick = () => {
+    if (!navigator.geolocation){ showToast('Hindi supported ng browser mo ang location'); return; }
+    findNear.textContent = 'Locating...';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        state.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        showToast('Nakita ang lokasyon mo');
+        render();
+      },
+      () => { showToast('Hindi ma-access ang location, i-allow sa browser settings'); findNear.textContent = '📍 Find spots near me'; },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  const useMyLoc = document.getElementById('useMyLocation');
+  if (useMyLoc) useMyLoc.onclick = () => {
+    if (!navigator.geolocation){ showToast('Hindi supported ng browser mo ang location'); return; }
+    useMyLoc.textContent = 'Locating...';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        state.formPin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        useMyLoc.textContent = '📍 Use my current location';
+        initFormMap();
+        showToast('Napin ang lokasyon mo, i-drag para i-adjust');
+      },
+      () => { showToast('Hindi ma-access ang location, i-allow sa browser settings'); useMyLoc.textContent = '📍 Use my current location'; },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  const submit = document.getElementById('fSubmit');
+  if (submit) submit.onclick = submitListing;
+
+  const cancelEdit = document.getElementById('cancelEdit');
+  if (cancelEdit) cancelEdit.onclick = () => {
+    state.editingListing = null;
+    state.formPin = null;
+    state.tab = 'search';
+    render();
+  };
+
+  document.querySelectorAll('[data-edit-listing]').forEach(el => {
+    el.onclick = () => {
+      const listing = state.listings.find(l => l.id === el.dataset.editListing);
+      if (!listing || !state.user || listing.user_id !== state.user.id) return;
+      state.editingListing = listing;
+      state.formPin = (listing.lat && listing.lng) ? { lat: listing.lat, lng: listing.lng } : null;
+      state.tab = 'list';
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-delete-listing]').forEach(el => {
+    el.onclick = async () => {
+      const listing = state.listings.find(l => l.id === el.dataset.deleteListing);
+      if (!listing || !state.user || listing.user_id !== state.user.id) return;
+      if (!window.confirm('Sigurado ka bang gusto mo i-delete ang listing na ito?')) return;
+      const ok = await deleteListingRow(listing.id);
+      if (ok){
+        state.listings = state.listings.filter(l => l.id !== listing.id);
+        showToast('Na-delete ang listing');
+        render();
+      }
+    };
+  });
+
+  const goLogin = document.getElementById('goLogin');
+  if (goLogin) goLogin.onclick = () => openAuthModal();
+
+  document.querySelectorAll('[data-cancel]').forEach(el => {
+    el.onclick = async () => {
+      const ok = await deleteBookingRow(el.dataset.cancel);
+      if (ok){
+        state.bookings = state.bookings.filter(b => b.id !== el.dataset.cancel);
+        showToast('Cancelled');
+        render();
+      }
+    };
+  });
+
+  document.querySelectorAll('[data-rate]').forEach(group => {
+    group.querySelectorAll('[data-star]').forEach(star => {
+      star.onclick = async () => {
+        const bookingId = group.dataset.rate;
+        const n = Number(star.dataset.star);
+        const ok = await updateBookingRating(bookingId, n);
+        if (ok){
+          state.bookings = state.bookings.map(b => b.id === bookingId ? { ...b, rating: n } : b);
+          showToast('Salamat sa rating!');
+          render();
+        }
+      };
+    });
+  });
+
+  document.querySelectorAll('[data-report]').forEach(el => {
+    el.onclick = () => {
+      const msg = window.prompt('Ano ang problema? (e.g. occupied ang spot, di makontak ang owner)');
+      if (msg && msg.trim()){
+        const reports = JSON.parse(localStorage.getItem('sirong_reports') || '[]');
+        reports.push({ id: uid(), bookingId: el.dataset.report, message: msg.trim(), at: new Date().toISOString() });
+        localStorage.setItem('sirong_reports', JSON.stringify(reports));
+        showToast('Naisumite ang report, salamat');
+      }
+    };
+  });
+}
+
+function submitListing(){
+  if (!state.user){ showToast('Kailangan mag-login muna'); return; }
+  const editing = state.editingListing;
+  const owner = state.user.displayName;
+  const address = document.getElementById('fAddress').value.trim();
+  const price = Number(document.getElementById('fPrice').value);
+  if (!address || !price) { showToast('Kumpletuhin ang address, price'); return; }
+  if (!state.formPin) { showToast('I-pin muna ang lokasyon sa mapa'); return; }
+  const features = Array.from(document.querySelectorAll('[data-formfeat].active')).map(el => el.dataset.formfeat);
+  const notes = document.getElementById('fNotes').value.trim();
+  const instant = document.getElementById('fInstant').checked;
+  const fiesta = document.getElementById('fFiesta').checked;
+  const payment = document.getElementById('fPayment').value;
+  const sizeInfo = document.getElementById('fSize').value;
+  const fileInput = document.getElementById('fPhoto');
+  const files = fileInput && fileInput.files ? Array.from(fileInput.files).slice(0, 6) : [];
+  const { lat, lng } = state.formPin;
+
+  async function finish(photos){
+    const hasNewPhotos = photos.length > 0;
+    const fields = { address, price, features, notes, owner, instant, fiesta, payment, size_info: sizeInfo || null, lat, lng };
+    if (hasNewPhotos) fields.photos = photos;
+
+    if (editing){
+      const updated = await updateListingRow(editing.id, fields);
+      if (updated){
+        state.listings = state.listings.map(l => l.id === editing.id ? updated : l);
+        state.editingListing = null;
+        state.formPin = null;
+        showToast('Na-update ang listing');
+        state.tab = 'search';
+        render();
+      }
+    } else {
+      const listing = { id: uid(), ...fields, user_id: state.user.id, photos: hasNewPhotos ? photos : null };
+      const saved = await insertListing(listing);
+      if (saved){
+        state.listings = [saved, ...state.listings];
+        state.formPin = null;
+        showToast('Nakalista na ang space mo');
+        state.tab = 'search';
+        render();
+      }
+    }
+  }
+
+  if (files.length){
+    showToast('Ino-optimize ang mga litrato...');
+    Promise.all(files.map(f => resizeImage(f, 1280))).then(results => {
+      finish(results.filter(Boolean));
+    });
+  } else {
+    finish([]);
+  }
+}
+
+function openBooking(listingId){
+  state.bookingTarget = state.listings.find(l => l.id === listingId);
+  document.getElementById('modalTitle').textContent = 'Book ' + state.bookingTarget.address;
+  document.getElementById('bfDate').value = '';
+  document.getElementById('bfStart').value = '';
+  document.getElementById('bfEnd').value = '';
+  document.getElementById('bfPay').textContent = 'Payment: ' + (state.bookingTarget.payment || 'GCash');
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+document.getElementById('modalClose').onclick = () => {
+  document.getElementById('overlay').classList.add('hidden');
+};
+
+document.getElementById('lightboxClose').onclick = () => {
+  document.getElementById('lightbox').classList.add('hidden');
+};
+document.getElementById('lightboxPrev').onclick = () => window.__lightboxNav(-1);
+document.getElementById('lightboxNext').onclick = () => window.__lightboxNav(1);
+
+document.getElementById('bfConfirm').onclick = async () => {
+  if (!state.user){ showToast('Kailangan mag-login muna'); return; }
+  const name = state.user.displayName;
+  const date = document.getElementById('bfDate').value;
+  const start = document.getElementById('bfStart').value;
+  const end = document.getElementById('bfEnd').value;
+  if (!date || !start || !end) { showToast('Kumpletuhin ang lahat ng field'); return; }
+  const hours = Math.max(1, Number(end.split(':')[0]) - Number(start.split(':')[0]));
+  const booking = {
+    id: uid(), listingId: state.bookingTarget.id, address: state.bookingTarget.address,
+    renter: name, date, start, end, total: hours * state.bookingTarget.price, instant: state.bookingTarget.instant,
+    userId: state.user.id,
+  };
+  const saved = await insertBooking(booking);
+  if (saved){
+    state.bookings = [saved, ...state.bookings];
+    document.getElementById('overlay').classList.add('hidden');
+    showToast(saved.instant ? 'Naka-book agad — instant confirm' : 'Booking request sent, hintayin approval');
+    state.tab = 'bookings';
+    render();
+  }
+};
+
+document.getElementById('fiestaToggle').onclick = () => {
+  state.fiestaMode = !state.fiestaMode;
+  render();
+};
+
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.onclick = () => {
+    state.tab = btn.dataset.tab;
+    if (btn.dataset.tab === 'list'){ state.editingListing = null; state.formPin = null; }
+    render();
+  };
+});
+
+function openAuthModal(){
+  document.getElementById('authError').style.display = 'none';
+  document.getElementById('authOverlay').classList.remove('hidden');
+}
+function closeAuthModal(){
+  document.getElementById('authOverlay').classList.add('hidden');
+}
+function setAuthMode(mode){
+  state.authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
+  document.getElementById('authNameField').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('authTitle').textContent = mode === 'signup' ? 'Gumawa ng account' : 'Log in';
+  document.getElementById('authSubmit').textContent = mode === 'signup' ? 'Gumawa ng account' : 'Log in';
+  document.getElementById('authError').style.display = 'none';
+}
+
+document.getElementById('authClose').onclick = closeAuthModal;
+document.getElementById('tabLogin').onclick = () => setAuthMode('login');
+document.getElementById('tabSignup').onclick = () => setAuthMode('signup');
+
+document.getElementById('authSubmit').onclick = async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errorEl = document.getElementById('authError');
+  errorEl.style.display = 'none';
+
+  if (!email || !password){ errorEl.textContent = 'Kumpletuhin ang email at password'; errorEl.style.display = 'block'; return; }
+
+  if (state.authMode === 'signup'){
+    const displayName = document.getElementById('authName').value.trim();
+    if (!displayName){ errorEl.textContent = 'Ilagay ang pangalan mo'; errorEl.style.display = 'block'; return; }
+    const { user, error } = await signUp(email, password, displayName);
+    if (error){ errorEl.textContent = error.message; errorEl.style.display = 'block'; return; }
+    if (!user){ errorEl.textContent = 'Pakicheck ang email mo para i-confirm ang account, pagkatapos mag-login.'; errorEl.style.display = 'block'; return; }
+    state.user = user;
+  } else {
+    const { user, error } = await signIn(email, password);
+    if (error){ errorEl.textContent = error.message; errorEl.style.display = 'block'; return; }
+    state.user = user;
+  }
+
+  closeAuthModal();
+  showToast(`Hi, ${state.user.displayName}!`);
+
+  if (state.pendingAction && state.pendingAction.type === 'book'){
+    const listingId = state.pendingAction.listingId;
+    state.pendingAction = null;
+    render();
+    openBooking(listingId);
+  } else {
+    render();
+  }
+};
+
+async function init(){
+  render();
+  const { data: sessionData } = await sb.auth.getSession();
+  state.user = sessionData && sessionData.session ? mapUser(sessionData.session.user) : null;
+  sb.auth.onAuthStateChange((_event, session) => {
+    state.user = session ? mapUser(session.user) : null;
+    renderAccountRow();
+  });
+  const [listings, bookings] = await Promise.all([fetchListings(), fetchBookings()]);
+  state.listings = listings;
+  state.bookings = bookings;
+  state.loading = false;
+  render();
+}
+init();
+</script>
+</body>
+</html>
