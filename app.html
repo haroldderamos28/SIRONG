@@ -152,6 +152,10 @@
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <span>Search</span>
     </button>
+    <button data-tab="myspaces" id="navMySpaces" style="display:none;">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+      <span>My Spaces</span>
+    </button>
     <button data-tab="list">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       <span>List space</span>
@@ -204,6 +208,19 @@
     </div>
     <p class="auth-error" id="authError" style="display:none;"></p>
     <div class="field" id="authNameField" style="display:none;"><input id="authName" placeholder="Pangalan mo" /></div>
+    <div class="field" id="authRoleField" style="display:none;">
+      <label>Ako ay...</label>
+      <div class="chip-row">
+        <span class="chip active" id="roleDriver" data-role="driver">🚗 Driver — naghahanap ng parking</span>
+        <span class="chip" id="roleOwner" data-role="owner">🏠 May space na paparentahan</span>
+      </div>
+    </div>
+    <div class="field" id="authOwnerFields" style="display:none;">
+      <label>Saan mo planong ilista ang space? (optional)</label>
+      <input id="authOwnerArea" placeholder="e.g. Near SM Naga, Concepcion Pequeña" />
+      <p class="map-hint" style="margin-top:8px;">Para mas mabilis ang verification, pwede ka nang mag-upload ng litrato ng valid ID ngayon (optional, pwede rin mamaya).</p>
+      <input class="file-field" id="authOwnerId" type="file" accept="image/*" style="margin-top:6px;" />
+    </div>
     <div class="field"><input id="authEmail" type="email" placeholder="Email" /></div>
     <div class="field"><input id="authPassword" type="password" placeholder="Password" /></div>
     <button class="btn btn-primary" id="authSubmit">Log in</button>
@@ -251,11 +268,11 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function mapUser(u){
   if (!u) return null;
-  return { id: u.id, email: u.email, displayName: (u.user_metadata && u.user_metadata.display_name) || u.email.split('@')[0] };
+  return { id: u.id, email: u.email, displayName: (u.user_metadata && u.user_metadata.display_name) || u.email.split('@')[0], role: (u.user_metadata && u.user_metadata.role) || 'driver' };
 }
 
-async function signUp(email, password, displayName){
-  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: displayName } } });
+async function signUp(email, password, displayName, role){
+  const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: displayName, role: role || 'driver' } } });
   return { user: data && data.user ? mapUser(data.user) : null, error };
 }
 
@@ -396,10 +413,29 @@ async function updateBookingRating(id, rating){
   return true;
 }
 
+async function fetchAvailabilityBlocks(){
+  const { data, error } = await sb.from('availability_blocks').select('*').order('block_date', { ascending: true });
+  if (error){ console.error(error); return []; }
+  return data;
+}
+
+async function insertAvailabilityBlock(block){
+  const { data, error } = await sb.from('availability_blocks').insert(block).select();
+  if (error){ console.error(error); showToast('Hindi na-block, subukan ulit'); return null; }
+  return data[0];
+}
+
+async function deleteAvailabilityBlockRow(id){
+  const { error } = await sb.from('availability_blocks').delete().eq('id', id);
+  if (error){ console.error(error); showToast('Hindi ma-alis, subukan ulit'); return false; }
+  return true;
+}
+
 let state = {
   tab: 'search',
   listings: [],
   bookings: [],
+  availabilityBlocks: [],
   activeFilters: [],
   fiestaMode: false,
   bookingTarget: null,
@@ -548,7 +584,7 @@ function renderListForm(){
     <h2 class="title">${e ? 'I-edit ang listing' : 'Ipa-rent ang space mo'}</h2>
     ${e ? `<button type="button" class="report-link" id="cancelEdit">← Kanselahin ang edit</button>` : ''}
     <p class="map-hint">Naka-login bilang <strong>${state.user ? state.user.displayName : ''}</strong></p>
-    <div class="field"><label>Address / landmark</label><input id="fAddress" placeholder="Near SM Naga" value="${e ? e.address : ''}" /></div>
+    <div class="field"><label>Address / landmark</label><input id="fAddress" placeholder="Near SM Naga" value="${e ? e.address : (state.pendingOwnerArea || '')}" /></div>
     <div class="field">
       <label>Pin ang eksaktong lokasyon</label>
       <p class="map-hint">I-click ang mapa para markahan ang space mo, o gamitin ang button.</p>
@@ -611,7 +647,72 @@ function initFormMap(){
   });
 }
 
+function renderMySpaces(){
+  const mine = state.listings.filter(l => state.user && l.user_id === state.user.id);
+
+  if (!mine.length){
+    return `<h2 class="title">Aking mga space</h2>
+      <p class="empty">Wala ka pang naka-list na space.</p>
+      <button class="btn btn-ink" id="goAddSpace" style="margin-top:10px;">+ Mag-add ng space</button>`;
+  }
+
+  let html = `<h2 class="title">Aking mga space</h2>`;
+
+  html += mine.map(l => {
+    const listingBookings = state.bookings.filter(b => b.listingId === l.id);
+    const earnings = listingBookings.reduce((sum, b) => sum + (Number(b.total) || 0), 0);
+    const blocks = state.availabilityBlocks.filter(bl => bl.listing_id === l.id);
+    const photos = (l.photos && l.photos.length) ? l.photos : (l.photo ? [l.photo] : []);
+
+    return `
+    <div class="card">
+      ${photos.length ? `<img class="card-photo" src="${photos[0]}" alt="${l.address}" />` : `<div class="photo-placeholder">No photo yet</div>`}
+      <div class="card-top">
+        <div class="card-left">
+          <div>
+            <p class="card-address">${l.address}</p>
+            <p class="card-owner">₱${l.price}/hr · ${listingBookings.length} booking${listingBookings.length===1?'':'s'}</p>
+          </div>
+        </div>
+        <span class="card-price">₱${earnings}<small> total</small></span>
+      </div>
+      <div style="display:flex; gap:16px; margin:8px 0;">
+        <button class="report-link" data-edit-listing="${l.id}">Edit details</button>
+        <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">Delete</button>
+      </div>
+
+      <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+        <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">I-block ang isang oras (hindi available)</p>
+        <div class="field"><input type="date" class="blockDate" id="blockDate-${l.id}" /></div>
+        <div class="time-row" style="margin-bottom:8px;">
+          <input type="time" class="blockStart" id="blockStart-${l.id}" />
+          <input type="time" class="blockEnd" id="blockEnd-${l.id}" />
+        </div>
+        <button class="btn btn-ghost" data-block-add="${l.id}" style="width:auto; padding:8px 14px;">+ I-block ang oras na ito</button>
+        ${blocks.length ? `<div style="margin-top:8px;">` + blocks.map(bl => `
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); padding:4px 0;">
+            <span>${bl.block_date} · ${bl.start_time}–${bl.end_time}</span>
+            <button class="report-link" data-block-remove="${bl.id}" style="color:#A8362A; margin:0;">Alisin</button>
+          </div>`).join('') + `</div>` : `<p class="map-hint">Wala pang blocked na oras.</p>`}
+      </div>
+
+      <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+        <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">Mga booking</p>
+        ${listingBookings.length ? listingBookings.map(b => `
+          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink); padding:4px 0;">
+            <span>${b.renter} · ${b.date} ${b.start}–${b.end}</span>
+            <span>₱${b.total}</span>
+          </div>`).join('') : `<p class="map-hint">Wala pang booking.</p>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  html += `<button class="btn btn-ink" id="goAddSpace" style="margin-top:6px;">+ Mag-add ng bagong space</button>`;
+  return html;
+}
+
 function renderBookings(){
+
   const mine = state.user ? state.bookings.filter(b => b.userId === state.user.id) : [];
   let html = `<h2 class="title">Mga booking ko</h2>`;
   if (mine.length === 0){
@@ -671,6 +772,7 @@ function render(){
   }
   if (state.tab === 'search') content.innerHTML = renderSearch();
   else if (state.tab === 'list') content.innerHTML = state.user ? renderListForm() : loginRequiredBlock('makapag-list ng space');
+  else if (state.tab === 'myspaces') content.innerHTML = state.user ? renderMySpaces() : loginRequiredBlock('makita ang iyong mga space');
   else content.innerHTML = state.user ? renderBookings() : loginRequiredBlock('makita ang mga booking mo');
 
   if (state.tab === 'search') setTimeout(initSearchMap, 0);
@@ -679,6 +781,11 @@ function render(){
   document.querySelectorAll('.nav button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === state.tab);
   });
+
+  const navMySpaces = document.getElementById('navMySpaces');
+  if (navMySpaces){
+    navMySpaces.style.display = (state.user && state.user.role === 'owner') ? 'flex' : 'none';
+  }
 
   const ft = document.getElementById('fiestaToggle');
   ft.classList.toggle('on', state.fiestaMode);
@@ -782,6 +889,46 @@ function attachContentListeners(){
 
   const goLogin = document.getElementById('goLogin');
   if (goLogin) goLogin.onclick = () => openAuthModal();
+
+  const goAddSpace = document.getElementById('goAddSpace');
+  if (goAddSpace) goAddSpace.onclick = () => {
+    state.editingListing = null;
+    state.formPin = null;
+    state.tab = 'list';
+    render();
+  };
+
+  document.querySelectorAll('[data-block-add]').forEach(el => {
+    el.onclick = async () => {
+      const listingId = el.dataset.blockAdd;
+      const dateEl = document.getElementById(`blockDate-${listingId}`);
+      const startEl = document.getElementById(`blockStart-${listingId}`);
+      const endEl = document.getElementById(`blockEnd-${listingId}`);
+      const block_date = dateEl.value;
+      const start_time = startEl.value;
+      const end_time = endEl.value;
+      if (!block_date || !start_time || !end_time){ showToast('Kumpletuhin ang date at oras'); return; }
+      const block = { id: uid(), listing_id: listingId, user_id: state.user.id, block_date, start_time, end_time };
+      const saved = await insertAvailabilityBlock(block);
+      if (saved){
+        state.availabilityBlocks = [...state.availabilityBlocks, saved];
+        showToast('Na-block ang oras na iyon');
+        render();
+      }
+    };
+  });
+
+  document.querySelectorAll('[data-block-remove]').forEach(el => {
+    el.onclick = async () => {
+      const id = el.dataset.blockRemove;
+      const ok = await deleteAvailabilityBlockRow(id);
+      if (ok){
+        state.availabilityBlocks = state.availabilityBlocks.filter(bl => bl.id !== id);
+        showToast('Naalis na');
+        render();
+      }
+    };
+  });
 
   document.querySelectorAll('[data-cancel]').forEach(el => {
     el.onclick = async () => {
@@ -965,6 +1112,8 @@ function setAuthMode(mode){
   document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
   document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
   document.getElementById('authNameField').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('authRoleField').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('authOwnerFields').style.display = (mode === 'signup' && state.signupRole === 'owner') ? 'block' : 'none';
   document.getElementById('authTitle').textContent = mode === 'signup' ? 'Gumawa ng account' : 'Log in';
   document.getElementById('authSubmit').textContent = mode === 'signup' ? 'Gumawa ng account' : 'Log in';
   document.getElementById('authError').style.display = 'none';
@@ -973,6 +1122,20 @@ function setAuthMode(mode){
 document.getElementById('authClose').onclick = closeAuthModal;
 document.getElementById('tabLogin').onclick = () => setAuthMode('login');
 document.getElementById('tabSignup').onclick = () => setAuthMode('signup');
+
+state.signupRole = 'driver';
+document.getElementById('roleDriver').onclick = () => {
+  state.signupRole = 'driver';
+  document.getElementById('roleDriver').classList.add('active');
+  document.getElementById('roleOwner').classList.remove('active');
+  document.getElementById('authOwnerFields').style.display = 'none';
+};
+document.getElementById('roleOwner').onclick = () => {
+  state.signupRole = 'owner';
+  document.getElementById('roleOwner').classList.add('active');
+  document.getElementById('roleDriver').classList.remove('active');
+  document.getElementById('authOwnerFields').style.display = 'block';
+};
 
 document.getElementById('authSubmit').onclick = async () => {
   const email = document.getElementById('authEmail').value.trim();
@@ -985,10 +1148,24 @@ document.getElementById('authSubmit').onclick = async () => {
   if (state.authMode === 'signup'){
     const displayName = document.getElementById('authName').value.trim();
     if (!displayName){ errorEl.textContent = 'Ilagay ang pangalan mo'; errorEl.style.display = 'block'; return; }
-    const { user, error } = await signUp(email, password, displayName);
+    const role = state.signupRole || 'driver';
+    const { user, error } = await signUp(email, password, displayName, role);
     if (error){ errorEl.textContent = error.message; errorEl.style.display = 'block'; return; }
     if (!user){ errorEl.textContent = 'Pakicheck ang email mo para i-confirm ang account, pagkatapos mag-login.'; errorEl.style.display = 'block'; return; }
     state.user = user;
+
+    if (role === 'owner'){
+      await ensureProfile(user);
+      const ownerArea = document.getElementById('authOwnerArea').value.trim();
+      state.pendingOwnerArea = ownerArea || null;
+      const idInput = document.getElementById('authOwnerId');
+      const idFile = idInput && idInput.files ? idInput.files[0] : null;
+      if (idFile){
+        const resized = await resizeImage(idFile, 1000);
+        if (resized) await submitVerificationPhoto(user.id, resized);
+      }
+      state.tab = 'list';
+    }
   } else {
     const { user, error } = await signIn(email, password);
     if (error){ errorEl.textContent = error.message; errorEl.style.display = 'block'; return; }
@@ -1016,9 +1193,10 @@ async function init(){
     state.user = session ? mapUser(session.user) : null;
     renderAccountRow();
   });
-  const [listings, bookings] = await Promise.all([fetchListings(), fetchBookings()]);
+  const [listings, bookings, availabilityBlocks] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks()]);
   state.listings = listings;
   state.bookings = bookings;
+  state.availabilityBlocks = availabilityBlocks;
   state.loading = false;
   render();
 }
