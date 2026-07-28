@@ -2,7 +2,7 @@
   "name": "Sirong - Bicol's Shared Parking",
   "short_name": "Sirong",
   "description": "Peer-to-peer parking marketplace for Naga City and Bicol",
-  "start_url": "/index.html",
+  "start_url": "/app.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1a9de3",
