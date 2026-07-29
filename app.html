@@ -1167,7 +1167,8 @@ function render(){
 
   const navMySpaces = document.getElementById('navMySpaces');
   if (navMySpaces){
-    navMySpaces.style.display = (state.user && state.user.role === 'owner') ? 'flex' : 'none';
+    const isOwner = state.user && (state.user.role === 'owner' || state.listings.some(l => l.user_id === state.user.id));
+    navMySpaces.style.display = isOwner ? 'flex' : 'none';
   }
 
   const ft = document.getElementById('fiestaToggle');
