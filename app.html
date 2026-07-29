@@ -373,6 +373,56 @@ async function ensureProfile(user){
   return created;
 }
 
+const VAPID_PUBLIC_KEY = 'BHKvikYmVjQKd3WACTSZf5bBGJ787r6FuPEvmmTQIBICY41WyOXUpUElfkvkaPug-_JgN5WVJYdd_kGox6ZgqfA';
+
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i){
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function subscribeToPush(){
+  if (!state.user){ showToast(t('login_first')); return; }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)){
+    showToast(t('notifications_not_supported'));
+    return;
+  }
+  try {
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted'){
+      showToast(t('notifications_denied_toast'));
+      return;
+    }
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription){
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    const subJson = subscription.toJSON();
+    const row = {
+      id: uid(),
+      user_id: state.user.id,
+      endpoint: subJson.endpoint,
+      p256dh: subJson.keys.p256dh,
+      auth: subJson.keys.auth,
+    };
+    const { error } = await sb.from('push_subscriptions').upsert(row, { onConflict: 'user_id,endpoint' });
+    if (error){ console.error(error); showToast(t('error_save_generic')); return; }
+    showToast(t('notifications_enabled_toast'));
+  } catch (err){
+    console.error(err);
+    showToast(t('error_save_generic'));
+  }
+}
+
 async function fetchAllProfiles(){
   const { data, error } = await sb.from('profiles').select('id, display_name, verified, avatar_photo, bio, special_requests');
   if (error){ console.error(error); return []; }
@@ -547,6 +597,10 @@ const TRANSLATIONS = {
     booking_accepted_toast: 'Your booking was accepted!',
     booking_declined_toast: 'Your booking was declined.',
     error_status_update: "Couldn't update booking status, please try again",
+    enable_notifications_btn: 'Enable notifications',
+    notifications_enabled_toast: "Notifications enabled! You'll get alerts even when the app is closed.",
+    notifications_denied_toast: 'Notifications were blocked. You can enable them in your browser settings.',
+    notifications_not_supported: "Your browser doesn't support notifications",
   },
   tl: {
     feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
@@ -674,6 +728,10 @@ const TRANSLATIONS = {
     booking_accepted_toast: 'Na-accept na ang booking mo!',
     booking_declined_toast: 'Na-decline ang booking mo.',
     error_status_update: 'Hindi na-update ang status, subukan ulit',
+    enable_notifications_btn: 'I-enable ang notifications',
+    notifications_enabled_toast: 'Naka-enable na ang notifications! Makakakuha ka ng alerto kahit sarado ang app.',
+    notifications_denied_toast: 'Na-block ang notifications. Puwede mo itong i-enable sa browser settings.',
+    notifications_not_supported: 'Hindi supported ng browser mo ang notifications',
   },
 };
 
@@ -1244,9 +1302,11 @@ function renderAccountRow(){
   const row = document.getElementById('accountRow');
   if (!row) return;
   if (state.user){
-    row.innerHTML = `<span class="account-label">Hi, ${state.user.displayName}</span><button class="account-btn" id="logoutBtn">Logout</button>`;
+    row.innerHTML = `<span class="account-label">Hi, ${state.user.displayName}</span><span style="display:flex; gap:6px;"><button class="account-btn" id="notifBtn" title="${t('enable_notifications_btn')}">🔔</button><button class="account-btn" id="logoutBtn">Logout</button></span>`;
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.onclick = signOutUser;
+    const notifBtn = document.getElementById('notifBtn');
+    if (notifBtn) notifBtn.onclick = subscribeToPush;
   } else {
     row.innerHTML = `<span class="account-label">${t('not_logged_in')}</span><button class="account-btn" id="loginBtnHeader">${t('login_btn')}</button>`;
     const loginBtn = document.getElementById('loginBtnHeader');
