@@ -531,6 +531,8 @@ const TRANSLATIONS = {
     type_message_placeholder: 'Type a message...', send_btn: 'Send',
     error_send_message: "Couldn't send, please try again",
     new_message_from: 'New message from',
+    your_own_listing: 'This is your listing',
+    cannot_book_own_listing: "You can't book your own listing.",
   },
   tl: {
     feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
@@ -651,6 +653,8 @@ const TRANSLATIONS = {
     type_message_placeholder: 'Mag-type ng mensahe...', send_btn: 'Ipadala',
     error_send_message: 'Hindi maipadala, subukan ulit',
     new_message_from: 'Bagong mensahe mula kay',
+    your_own_listing: 'Ito ang listing mo',
+    cannot_book_own_listing: 'Hindi mo pwedeng i-book ang sarili mong listing.',
   },
 };
 
@@ -887,13 +891,14 @@ function renderSearch(){
           ? `<p class="map-hint" style="margin-bottom:8px;">${t('custom_avail_prefix')} ${customDates} ${t('custom_avail_suffix')}</p>`
           : `<p class="map-hint" style="margin-bottom:8px;">${t('available_anytime')}</p>`;
       })()}
-      <button type="button" class="report-link" data-view-owner="${l.user_id}" style="margin-bottom:8px;">${t('view_owner_profile')}</button>
-      <button class="btn btn-primary" data-book="${l.id}">${l.instant ? t('book_instant') : t('send_booking_request')}</button>
       ${state.user && l.user_id === state.user.id ? `
+      <p class="map-hint" style="margin-bottom:8px; font-style:italic;">${t('your_own_listing')}</p>
       <div style="display:flex; gap:16px; margin-top:8px;">
         <button class="report-link" data-edit-listing="${l.id}">${t('edit_listing')}</button>
         <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">${t('delete')}</button>
-      </div>` : ''}
+      </div>` : `
+      <button type="button" class="report-link" data-view-owner="${l.user_id}" style="margin-bottom:8px;">${t('view_owner_profile')}</button>
+      <button class="btn btn-primary" data-book="${l.id}">${l.instant ? t('book_instant') : t('send_booking_request')}</button>`}
     </div>
   `).join('');
 
@@ -939,7 +944,8 @@ function initSearchMap(){
 
   visible.forEach(l => {
     const marker = L.marker([l.lat, l.lng]).addTo(searchMapInstance);
-    const popupHtml = `<p class="popup-title">${l.address}</p><p class="popup-price">₱${l.price}/hr · ${l.owner}</p><button class="popup-btn" onclick="window.__bookFromMap('${l.id}')">Book</button>`;
+    const isOwnListing = state.user && l.user_id === state.user.id;
+    const popupHtml = `<p class="popup-title">${l.address}</p><p class="popup-price">₱${l.price}/hr · ${l.owner}</p>${isOwnListing ? '' : `<button class="popup-btn" onclick="window.__bookFromMap('${l.id}')">Book</button>`}`;
     marker.bindPopup(popupHtml);
   });
 }
@@ -1666,6 +1672,10 @@ function isRangeAvailable(listingId, date, startTime, endTime){
 
 function openBooking(listingId){
   state.bookingTarget = state.listings.find(l => l.id === listingId);
+  if (state.user && state.bookingTarget && state.bookingTarget.user_id === state.user.id){
+    showToast(t('cannot_book_own_listing'));
+    return;
+  }
   document.getElementById('modalTitle').textContent = t('book_modal_title_prefix') + ' ' + state.bookingTarget.address;
   document.getElementById('bfDate').value = '';
   document.getElementById('bfStart').value = '';
