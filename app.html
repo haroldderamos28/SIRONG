@@ -277,6 +277,16 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="ownerProfileOverlay">
+  <div class="modal" style="max-height:82vh; overflow-y:auto;">
+    <div class="modal-top">
+      <p>Profile ng May-ari</p>
+      <svg id="ownerProfileClose" style="cursor:pointer; color:#7C97A3;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+    <div id="ownerProfileContent"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://meawvaorrillebhkxgew.supabase.co";
@@ -313,12 +323,16 @@ async function ensureProfile(user){
   return created;
 }
 
-async function fetchProfilesMap(){
-  const { data, error } = await sb.from('profiles').select('id, verified');
-  if (error){ console.error(error); return {}; }
-  const map = {};
-  data.forEach(p => { map[p.id] = p.verified; });
-  return map;
+async function fetchAllProfiles(){
+  const { data, error } = await sb.from('profiles').select('id, display_name, verified, avatar_photo, bio, special_requests');
+  if (error){ console.error(error); return []; }
+  return data;
+}
+
+async function updateProfileFields(userId, fields){
+  const { data, error } = await sb.from('profiles').update(fields).eq('id', userId).select().maybeSingle();
+  if (error){ console.error(error); showToast('Hindi na-save ang profile, subukan ulit'); return null; }
+  return data;
 }
 
 async function submitVerificationPhoto(userId, photoDataUrl){
@@ -473,6 +487,7 @@ let state = {
   bookingCalYear: null,
   bookingCalMonthIdx: null,
   bookingSelectedDate: null,
+  profiles: [],
   activeFilters: [],
   fiestaMode: false,
   bookingTarget: null,
@@ -560,6 +575,7 @@ function renderSearch(){
           ? `<p class="map-hint" style="margin-bottom:8px;">📅 May customized availability sa ${customDates} na petsa — tingnan sa Book</p>`
           : `<p class="map-hint" style="margin-bottom:8px;">🕐 Available anumang oras (default)</p>`;
       })()}
+      <button type="button" class="report-link" data-view-owner="${l.user_id}" style="margin-bottom:8px;">🧑 Pumunta sa profile ng may-ari →</button>
       <button class="btn btn-primary" data-book="${l.id}">${l.instant ? 'Book agad — instant' : 'Send booking request'}</button>
       ${state.user && l.user_id === state.user.id ? `
       <div style="display:flex; gap:16px; margin-top:8px;">
@@ -754,16 +770,45 @@ function initFormMap(){
   });
 }
 
+function renderProfileEditorHtml(){
+  const myProfile = state.profiles.find(p => state.user && p.id === state.user.id);
+  const displayName = state.user ? state.user.displayName : '';
+  const avatar = myProfile && myProfile.avatar_photo ? myProfile.avatar_photo : null;
+  const bio = myProfile && myProfile.bio ? myProfile.bio : '';
+  const special = myProfile && myProfile.special_requests ? myProfile.special_requests : '';
+  const verified = myProfile && myProfile.verified;
+
+  return `
+    <h2 class="title">Aking profile</h2>
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+        ${avatar
+          ? `<img src="${avatar}" style="width:56px; height:56px; border-radius:50%; object-fit:cover; flex-shrink:0;" />`
+          : `<div style="width:56px; height:56px; border-radius:50%; background:var(--sky); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:22px; flex-shrink:0;">${(displayName||'?').charAt(0).toUpperCase()}</div>`}
+        <div>
+          <p style="font-family:'Fraunces',serif; font-size:16px; color:var(--sky-deep); margin:0;">${displayName}</p>
+          <p class="map-hint" style="margin:2px 0 0;">${verified ? '✓ Verified' : 'Hindi pa verified'}</p>
+        </div>
+      </div>
+      <div class="field"><label>Profile photo</label><input class="file-field" id="profileAvatarInput" type="file" accept="image/*" /></div>
+      <div class="field"><label>Bio / tungkol sa akin bilang host</label><input id="profileBioInput" placeholder="Ilarawan ang sarili mo..." value="${bio}" /></div>
+      <div class="field"><label>Special requests sa mga renters</label><input id="profileSpecialInput" placeholder="e.g. Paki-text bago dumating" value="${special}" /></div>
+      <button class="btn btn-ink" id="saveProfileBtn">I-save ang profile</button>
+    </div>
+  `;
+}
+
 function renderMySpaces(){
   const mine = state.listings.filter(l => state.user && l.user_id === state.user.id);
+  const profileSection = renderProfileEditorHtml();
 
   if (!mine.length){
-    return `<h2 class="title">Aking mga space</h2>
+    return profileSection + `<h2 class="title" style="margin-top:16px;">Aking mga space</h2>
       <p class="empty">Wala ka pang naka-list na space.</p>
       <button class="btn btn-ink" id="goAddSpace" style="margin-top:10px;">+ Mag-add ng space</button>`;
   }
 
-  let html = `<h2 class="title">Aking mga space</h2>`;
+  let html = profileSection + `<h2 class="title" style="margin-top:16px;">Aking mga space</h2>`;
 
   html += mine.map(l => {
     const listingBookings = state.bookings.filter(b => b.listingId === l.id);
@@ -895,6 +940,36 @@ function attachContentListeners(){
       render();
     };
   });
+
+  document.querySelectorAll('[data-view-owner]').forEach(el => {
+    el.onclick = () => openOwnerProfile(el.dataset.viewOwner);
+  });
+
+  const saveProfileBtn = document.getElementById('saveProfileBtn');
+  if (saveProfileBtn) saveProfileBtn.onclick = async () => {
+    const bio = document.getElementById('profileBioInput').value.trim();
+    const special = document.getElementById('profileSpecialInput').value.trim();
+    const avatarInput = document.getElementById('profileAvatarInput');
+    const avatarFile = avatarInput && avatarInput.files ? avatarInput.files[0] : null;
+
+    await ensureProfile(state.user);
+
+    let avatarDataUrl = null;
+    if (avatarFile){
+      showToast('Ino-optimize ang litrato...');
+      avatarDataUrl = await resizeImage(avatarFile, 400);
+    }
+
+    const fields = { bio, special_requests: special };
+    if (avatarDataUrl) fields.avatar_photo = avatarDataUrl;
+
+    const saved = await updateProfileFields(state.user.id, fields);
+    if (saved){
+      state.profiles = [...state.profiles.filter(p => p.id !== state.user.id), saved];
+      showToast('Na-save ang profile mo');
+      render();
+    }
+  };
 
   document.querySelectorAll('[data-book]').forEach(el => {
     el.onclick = () => {
@@ -1307,6 +1382,52 @@ document.getElementById('aboutTabEN').onclick = () => {
   document.getElementById('aboutContentTL').style.display = 'none';
 };
 
+function renderOwnerProfileHtml(ownerId){
+  const profile = state.profiles.find(p => p.id === ownerId);
+  const ownerListings = state.listings.filter(l => l.user_id === ownerId);
+  const ownerListingIds = new Set(ownerListings.map(l => l.id));
+  const ratedBookings = state.bookings.filter(b => ownerListingIds.has(b.listingId) && b.rating);
+  const avgRating = ratedBookings.length ? (ratedBookings.reduce((s,b) => s + Number(b.rating), 0) / ratedBookings.length) : null;
+  const displayName = (profile && profile.display_name) || (ownerListings[0] ? ownerListings[0].owner : 'May-ari');
+  const verified = profile && profile.verified;
+  const bio = profile && profile.bio ? profile.bio : '';
+  const specialReq = profile && profile.special_requests ? profile.special_requests : '';
+  const avatar = profile && profile.avatar_photo ? profile.avatar_photo : null;
+
+  const allPhotos = [];
+  ownerListings.forEach(l => {
+    const photos = (l.photos && l.photos.length) ? l.photos : (l.photo ? [l.photo] : []);
+    photos.forEach(p => allPhotos.push(p));
+  });
+
+  return `
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      ${avatar
+        ? `<img src="${avatar}" style="width:56px; height:56px; border-radius:50%; object-fit:cover; flex-shrink:0;" />`
+        : `<div style="width:56px; height:56px; border-radius:50%; background:var(--sky); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:22px; flex-shrink:0;">${displayName.charAt(0).toUpperCase()}</div>`}
+      <div>
+        <p style="font-family:'Fraunces',serif; font-size:17px; color:var(--sky-deep); margin:0;">${displayName}${verified ? ' <span class="verify-badge">✓ Verified</span>' : ''}</p>
+        <p class="map-hint" style="margin:2px 0 0;">${ownerListings.length} na listing · ${avgRating ? '⭐ ' + avgRating.toFixed(1) + ' average rating' : 'Wala pang rating'}</p>
+      </div>
+    </div>
+    ${bio ? `<p class="notes" style="margin-bottom:10px;">${bio}</p>` : `<p class="map-hint" style="margin-bottom:10px;">Wala pang bio ang may-ari na ito.</p>`}
+    ${specialReq ? `<p style="font-size:12px; color:#9A6A1E; background:#FCEBD2; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><strong>Special requests:</strong> ${specialReq}</p>` : ''}
+    ${allPhotos.length ? `
+      <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">Mga litrato ng kanyang mga space</p>
+      <div class="thumb-row" style="flex-wrap:wrap;">${allPhotos.slice(0,8).map(p => `<img class="thumb" src="${p}" style="width:64px; height:64px;" />`).join('')}</div>
+    ` : ''}
+  `;
+}
+
+function openOwnerProfile(ownerId){
+  document.getElementById('ownerProfileContent').innerHTML = renderOwnerProfileHtml(ownerId);
+  document.getElementById('ownerProfileOverlay').classList.remove('hidden');
+}
+
+document.getElementById('ownerProfileClose').onclick = () => {
+  document.getElementById('ownerProfileOverlay').classList.add('hidden');
+};
+
 document.getElementById('lightboxClose').onclick = () => {
   document.getElementById('lightbox').classList.add('hidden');
 };
@@ -1408,7 +1529,8 @@ document.getElementById('authSubmit').onclick = async () => {
     state.user = user;
 
     if (role === 'owner'){
-      await ensureProfile(user);
+      const newProfile = await ensureProfile(user);
+      if (newProfile) state.profiles = [...state.profiles.filter(p => p.id !== user.id), newProfile];
       const ownerArea = document.getElementById('authOwnerArea').value.trim();
       state.pendingOwnerArea = ownerArea || null;
       const idInput = document.getElementById('authOwnerId');
@@ -1446,11 +1568,12 @@ async function init(){
     state.user = session ? mapUser(session.user) : null;
     renderAccountRow();
   });
-  const [listings, bookings, availabilityBlocks, listingHours] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingHours()]);
+  const [listings, bookings, availabilityBlocks, listingHours, profiles] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingHours(), fetchAllProfiles()]);
   state.listings = listings;
   state.bookings = bookings;
   state.availabilityBlocks = availabilityBlocks;
   state.listingHours = listingHours;
+  state.profiles = profiles;
   state.loading = false;
   render();
 }
