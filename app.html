@@ -148,7 +148,8 @@
       <div class="badge">S</div>
       <span class="brand-name">Sirong</span>
       <span class="brand-sub">· Naga</span>
-      <span id="aboutBtn" style="margin-left:auto; cursor:pointer; color:#fff; display:flex; align-items:center;" title="About Sirong">
+      <span id="langToggle" style="margin-left:auto; cursor:pointer; color:#fff; font-size:11px; font-weight:700; border:1px solid rgba(255,255,255,0.5); border-radius:20px; padding:3px 9px;" title="Switch language">EN</span>
+      <span id="aboutBtn" style="margin-left:8px; cursor:pointer; color:#fff; display:flex; align-items:center;" title="About Sirong">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
       </span>
     </div>
@@ -187,7 +188,7 @@
       <p id="modalTitle">Book</p>
       <svg id="modalClose" style="cursor:pointer; color:#7C97A3;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </div>
-    <p class="map-hint">Piliin ang petsa sa kalendaryo para makita ang available na oras.</p>
+    <p class="map-hint" id="bookingCalHint">Pick a date on the calendar to see available hours.</p>
     <div id="bookingCalWrap"></div>
     <div id="bookingHourWrap"></div>
     <div class="field"><input id="bfDate" type="date" /></div>
@@ -196,7 +197,7 @@
       <input id="bfEnd" type="time" />
     </div>
     <p class="pay-note" id="bfPay">Payment: GCash</p>
-    <p class="safety-note">Sirong connects you with the space owner directly — please confirm the spot and access details with them before paying.</p>
+    <p class="safety-note" id="bookingSafetyNote">Sirong connects you with the space owner directly — please confirm the spot and access details with them before paying.</p>
     <button class="btn btn-green" id="bfConfirm" style="margin-top:10px;">Confirm booking</button>
   </div>
 </div>
@@ -221,21 +222,21 @@
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" id="tabLogin">Log in</div>
-      <div class="auth-tab" id="tabSignup">Gumawa ng account</div>
+      <div class="auth-tab" id="tabSignup">Create an account</div>
     </div>
     <p class="auth-error" id="authError" style="display:none;"></p>
-    <div class="field" id="authNameField" style="display:none;"><input id="authName" placeholder="Pangalan mo" /></div>
+    <div class="field" id="authNameField" style="display:none;"><input id="authName" placeholder="Your name" /></div>
     <div class="field" id="authRoleField" style="display:none;">
-      <label>Ako ay...</label>
+      <label id="authAmALabel">I am a...</label>
       <div class="chip-row">
-        <span class="chip active" id="roleDriver" data-role="driver">🚗 Driver — naghahanap ng parking</span>
-        <span class="chip" id="roleOwner" data-role="owner">🏠 May space na paparentahan</span>
+        <span class="chip active" id="roleDriver" data-role="driver">🚗 Driver — looking for parking</span>
+        <span class="chip" id="roleOwner" data-role="owner">🏠 Have a space to rent out</span>
       </div>
     </div>
     <div class="field" id="authOwnerFields" style="display:none;">
-      <label>Saan mo planong ilista ang space? (optional)</label>
+      <label id="authAreaLabel">Where do you plan to list your space? (optional)</label>
       <input id="authOwnerArea" placeholder="e.g. Near SM Naga, Concepcion Pequeña" />
-      <p class="map-hint" style="margin-top:8px;">Para mas mabilis ang verification, pwede ka nang mag-upload ng litrato ng valid ID ngayon (optional, pwede rin mamaya).</p>
+      <p class="map-hint" id="authIdHint" style="margin-top:8px;">For faster verification, you can upload a photo of a valid ID now (optional, can also do this later).</p>
       <input class="file-field" id="authOwnerId" type="file" accept="image/*" style="margin-top:6px;" />
     </div>
     <div class="field"><input id="authEmail" type="email" placeholder="Email" /></div>
@@ -331,13 +332,13 @@ async function fetchAllProfiles(){
 
 async function updateProfileFields(userId, fields){
   const { data, error } = await sb.from('profiles').update(fields).eq('id', userId).select().maybeSingle();
-  if (error){ console.error(error); showToast('Hindi na-save ang profile, subukan ulit'); return null; }
+  if (error){ console.error(error); showToast(t('error_save_profile')); return null; }
   return data;
 }
 
 async function submitVerificationPhoto(userId, photoDataUrl){
   const { data, error } = await sb.from('profiles').update({ id_photo: photoDataUrl, submitted_for_verification: true }).eq('id', userId).select().maybeSingle();
-  if (error){ console.error(error); showToast('Hindi na-submit, subukan ulit'); return null; }
+  if (error){ console.error(error); showToast(t('error_submit_generic')); return null; }
   return data;
 }
 </script>
@@ -364,6 +365,249 @@ const SEED_LISTINGS = [
 ];
 
 const NAGA_CENTER = [13.6218, 123.1948];
+
+const MONTH_NAMES = {
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  tl: ['Enero','Pebrero','Marso','Abril','Mayo','Hunyo','Hulyo','Agosto','Setyembre','Oktubre','Nobyembre','Disyembre'],
+};
+
+const TRANSLATIONS = {
+  en: {
+    feature_covered: 'Covered', feature_gated: 'Secured/gated', feature_moto: 'Motorcycle OK', feature_cctv: 'CCTV',
+    find_spots_near_me: '📍 Find spots near me',
+    no_match_filters: 'No spots match your filters.',
+    custom_avail_prefix: '📅 Has custom availability on', custom_avail_suffix: 'date(s) — check Book',
+    available_anytime: '🕐 Available anytime (default)',
+    view_owner_profile: '🧑 Go to lot owner profile →',
+    book_instant: 'Book now — instant', send_booking_request: 'Send booking request',
+    edit_listing: 'Edit listing', delete: 'Delete',
+    edit_details_availability: 'Edit details & availability',
+    edit_listing_title: 'Edit listing', new_listing_title: 'List your space',
+    cancel_edit: '← Cancel edit',
+    logged_in_as: 'Logged in as',
+    address_landmark: 'Address / landmark',
+    pin_exact_location: 'Pin the exact location',
+    click_map_hint: 'Click the map to mark your space, or use the button.',
+    use_my_location: '📍 Use my current location',
+    space_photos: 'Space photos (optional, multiple allowed)',
+    existing_photos_hint: 'You already have photos — only upload if you want to replace them.',
+    space_size: 'Space size', choose_option: '-- Choose --',
+    size_moto: 'Motorcycle only', size_sedan: '1 sedan/compact car', size_suv: '1 SUV/van', size_multi: '2+ vehicles',
+    price_per_hour: 'Price per hour (₱)',
+    features_label: 'Features',
+    instant_book_checkbox: 'Instant book (no approval needed)',
+    fiesta_checkbox: 'Available during Peñafrancia Fiesta',
+    access_notes: 'Access notes (optional)',
+    preferred_payment: 'Preferred payment',
+    availability_calendar: 'Availability calendar',
+    avail_cal_hint: 'Click a date to set which hours are open or closed for your space. Dates with a colored dot already have hours set.',
+    avail_cal_after_save: 'The calendar becomes available after you save this listing for the first time.',
+    listing_safety_note: "By listing, you're agreeing to let drivers park based on the details above — please only mark dates/times you're sure are free.",
+    update_listing_btn: 'Update listing', list_space_btn: '+ List space',
+    click_date_set_hours: 'Click a date above to set the hours.',
+    hours_for_date_prefix: 'Hours for', hours_for_date_suffix: '— tap to open/close each hour',
+    save_hours_btn: 'Save hours for this date',
+    my_profile: 'My profile',
+    verified_label: '✓ Verified', not_verified_label: 'Not verified yet',
+    profile_photo: 'Profile photo',
+    bio_label: 'Bio / about you as a host', bio_placeholder: 'Describe yourself...',
+    special_requests_label: 'Special requests for renters', special_requests_placeholder: 'e.g. Please text before arriving',
+    save_profile_btn: 'Save profile',
+    my_spaces_title: 'My spaces',
+    no_spaces_yet: "You haven't listed any spaces yet.",
+    add_space_btn: '+ Add a space',
+    add_new_space_btn: '+ Add a new space',
+    bookings_label: 'Bookings',
+    no_bookings_yet_owner: 'No bookings yet.',
+    my_bookings_title: 'My bookings',
+    no_bookings_yet: "You don't have any bookings yet.",
+    login_required_prefix: 'You need to log in to', 
+    login_required_list: 'list a space',
+    login_required_myspaces: 'see your spaces',
+    login_required_bookings: 'see your bookings',
+    login_signup_btn: 'Log in / Sign up',
+    not_logged_in: 'Not logged in',
+    login_btn: 'Log in',
+    optimizing_photos: 'Optimizing photos...',
+    profile_saved: 'Profile saved',
+    location_not_supported: "Your browser doesn't support location",
+    location_found: 'Location found',
+    location_denied: "Couldn't access location, please allow it in browser settings",
+    location_pinned: 'Location pinned, drag to adjust',
+    confirm_delete_listing: 'Are you sure you want to delete this listing?',
+    listing_deleted: 'Listing deleted',
+    hours_saved: 'Hours saved for that date',
+    complete_date_time: 'Please fill in the date and time',
+    time_blocked: 'That time has been blocked',
+    thanks_rating: 'Thanks for the rating!',
+    report_problem_prompt: 'What was the problem? (e.g. spot was occupied, could not reach the owner)',
+    report_submitted: 'Report submitted, thank you',
+    login_first: 'Please log in first',
+    complete_address_price: 'Please fill in address and price',
+    pin_location_first: 'Please pin the location on the map first',
+    listing_updated: 'Listing updated',
+    listing_created: 'Your space is now listed',
+    optimizing_photos_plural: 'Optimizing photos...',
+    pick_date_see_hours: 'Pick a date above to see the hours.',
+    availability_for: 'Availability for', open_green: '(green = open)',
+    time_closed: 'That time is closed, please pick another time.',
+    booking_instant_confirmed: 'Booked instantly — confirmed',
+    booking_request_sent: 'Booking request sent, waiting for approval',
+    report_link: 'Report a problem',
+    cancel_btn: 'Cancel',
+    rate_this_spot: 'Rate this spot:',
+    host_label: 'Host',
+    km_away: 'km away',
+    total_label: 'total',
+    listing_count_suffix: 'listing',
+    average_rating: 'average rating',
+    no_rating_yet: 'No ratings yet',
+    no_bio_owner: 'This owner has not added a bio yet.',
+    owner_space_photos: 'Photos of their spaces',
+    owner_profile_title: 'Lot Owner Profile',
+    driver_signup_role: '🚗 Driver — looking for parking',
+    owner_signup_role: '🏠 Have a space to rent out',
+    signup_am_a: 'I am a...',
+    signup_area_label: 'Where do you plan to list your space? (optional)',
+    signup_id_hint: 'For faster verification, you can upload a photo of a valid ID now (optional, can also do this later).',
+    your_name: 'Your name',
+    log_in_title: 'Log in', sign_up_title: 'Create an account',
+    complete_email_password: 'Please fill in email and password',
+    enter_your_name: 'Please enter your name',
+    check_email_confirm: 'Please check your email to confirm your account, then log in.',
+    book_modal_title_prefix: 'Book',
+    pick_date_calendar_hint: 'Pick a date on the calendar to see available hours.',
+    payment_label: 'Payment',
+    booking_safety_note: "Sirong connects you with the space owner directly — please confirm the spot and access details with them before paying.",
+    confirm_booking_btn: 'Confirm booking',
+    error_load_listings: "Couldn't load listings", error_save_generic: "Couldn't save, please try again",
+    error_update_generic: "Couldn't update, please try again", error_delete_generic: "Couldn't delete, please try again",
+    error_load_bookings: "Couldn't load bookings", error_book_generic: "Couldn't book, please try again",
+    error_cancel_generic: "Couldn't cancel, please try again", error_save_rating: "Couldn't save rating",
+    error_block_generic: "Couldn't block, please try again", error_remove_generic: "Couldn't remove, please try again",
+    error_save_hours: "Couldn't save hours, please try again", error_save_profile: "Couldn't save profile, please try again",
+    error_submit_generic: "Couldn't submit, please try again", removed_label: 'Removed', cancelled_label: 'Cancelled',
+    feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
+    find_spots_near_me: '📍 Hanapin ang malapit na spots',
+    no_match_filters: 'Walang spot na match sa filters mo.',
+    custom_avail_prefix: '📅 May customized availability sa', custom_avail_suffix: 'na petsa — tingnan sa Book',
+    available_anytime: '🕐 Available anumang oras (default)',
+    view_owner_profile: '🧑 Pumunta sa profile ng may-ari →',
+    book_instant: 'Book agad — instant', send_booking_request: 'Send booking request',
+    edit_listing: 'Edit listing', delete: 'Delete',
+    edit_details_availability: 'Edit details at availability',
+    edit_listing_title: 'I-edit ang listing', new_listing_title: 'Ipa-rent ang space mo',
+    cancel_edit: '← Kanselahin ang edit',
+    logged_in_as: 'Naka-login bilang',
+    address_landmark: 'Address / landmark',
+    pin_exact_location: 'Pin ang eksaktong lokasyon',
+    click_map_hint: 'I-click ang mapa para markahan ang space mo, o gamitin ang button.',
+    use_my_location: '📍 Use my current location',
+    space_photos: 'Mga litrato ng space (optional, pwede multiple)',
+    existing_photos_hint: 'May existing photos na — mag-upload lang kung gusto mo palitan.',
+    space_size: 'Sukat ng space', choose_option: '-- Piliin --',
+    size_moto: 'Motor lang', size_sedan: '1 sedan/compact car', size_suv: '1 SUV/van', size_multi: '2+ na sasakyan',
+    price_per_hour: 'Presyo per hour (₱)',
+    features_label: 'Features',
+    instant_book_checkbox: 'Instant book (walang hintay na approval)',
+    fiesta_checkbox: 'Available during Peñafrancia Fiesta',
+    access_notes: 'Access notes (optional)',
+    preferred_payment: 'Preferred payment',
+    availability_calendar: 'Availability calendar',
+    avail_cal_hint: 'I-click ang isang petsa para i-set kung anong oras bukas o sarado ang space mo. Ang mga petsang may kulay na tuldok ay may na-set nang oras.',
+    avail_cal_after_save: 'Available ang calendar pagkatapos mong i-save ang listing na ito sa unang pagkakataon.',
+    listing_safety_note: "By listing, you're agreeing to let drivers park based on the details above — please only mark dates/times you're sure are free.",
+    update_listing_btn: 'Update listing', list_space_btn: '+ I-list ang space',
+    click_date_set_hours: 'I-click ang isang petsa sa itaas para i-set ang oras.',
+    hours_for_date_prefix: 'Oras para sa', hours_for_date_suffix: '— i-tap para buksan/isara ang bawat oras',
+    save_hours_btn: 'I-save ang oras para sa petsang ito',
+    my_profile: 'Aking profile',
+    verified_label: '✓ Verified', not_verified_label: 'Hindi pa verified',
+    profile_photo: 'Profile photo',
+    bio_label: 'Bio / tungkol sa akin bilang host', bio_placeholder: 'Ilarawan ang sarili mo...',
+    special_requests_label: 'Special requests sa mga renters', special_requests_placeholder: 'e.g. Paki-text bago dumating',
+    save_profile_btn: 'I-save ang profile',
+    my_spaces_title: 'Aking mga space',
+    no_spaces_yet: 'Wala ka pang naka-list na space.',
+    add_space_btn: '+ Mag-add ng space',
+    add_new_space_btn: '+ Mag-add ng bagong space',
+    bookings_label: 'Mga booking',
+    no_bookings_yet_owner: 'Wala pang booking.',
+    my_bookings_title: 'Mga booking ko',
+    no_bookings_yet: 'Wala ka pang booking.',
+    login_required_prefix: 'Kailangan mag-login muna para',
+    login_required_list: 'makapag-list ng space',
+    login_required_myspaces: 'makita ang iyong mga space',
+    login_required_bookings: 'makita ang mga booking mo',
+    login_signup_btn: 'Log in / Sign up',
+    not_logged_in: 'Hindi naka-login',
+    login_btn: 'Log in',
+    optimizing_photos: 'Ino-optimize ang litrato...',
+    profile_saved: 'Na-save ang profile mo',
+    location_not_supported: 'Hindi supported ng browser mo ang location',
+    location_found: 'Nakita ang lokasyon mo',
+    location_denied: 'Hindi ma-access ang location, i-allow sa browser settings',
+    location_pinned: 'Napin ang lokasyon mo, i-drag para i-adjust',
+    confirm_delete_listing: 'Sigurado ka bang gusto mo i-delete ang listing na ito?',
+    listing_deleted: 'Na-delete ang listing',
+    hours_saved: 'Na-save ang oras para sa petsang iyon',
+    complete_date_time: 'Kumpletuhin ang date at oras',
+    time_blocked: 'Na-block ang oras na iyon',
+    thanks_rating: 'Salamat sa rating!',
+    report_problem_prompt: 'Ano ang problema? (e.g. occupied ang spot, di makontak ang owner)',
+    report_submitted: 'Naisumite ang report, salamat',
+    login_first: 'Kailangan mag-login muna',
+    complete_address_price: 'Kumpletuhin ang address, price',
+    pin_location_first: 'I-pin muna ang lokasyon sa mapa',
+    listing_updated: 'Na-update ang listing',
+    listing_created: 'Nakalista na ang space mo',
+    optimizing_photos_plural: 'Ino-optimize ang mga litrato...',
+    pick_date_see_hours: 'Pumili ng petsa sa itaas para makita ang oras.',
+    availability_for: 'Availability para sa', open_green: '(berde = bukas)',
+    time_closed: 'Naka-close ang space sa oras na iyon, pumili ng ibang oras.',
+    booking_instant_confirmed: 'Naka-book agad — instant confirm',
+    booking_request_sent: 'Booking request sent, hintayin approval',
+    report_link: 'Report a problem',
+    cancel_btn: 'Cancel',
+    rate_this_spot: 'I-rate ang spot na ito:',
+    host_label: 'Host',
+    km_away: 'km ang layo',
+    total_label: 'total',
+    listing_count_suffix: 'listing',
+    average_rating: 'average rating',
+    no_rating_yet: 'Wala pang rating',
+    no_bio_owner: 'Wala pang bio ang may-ari na ito.',
+    owner_space_photos: 'Mga litrato ng kanyang mga space',
+    owner_profile_title: 'Profile ng May-ari',
+    driver_signup_role: '🚗 Driver — naghahanap ng parking',
+    owner_signup_role: '🏠 May space na paparentahan',
+    signup_am_a: 'Ako ay...',
+    signup_area_label: 'Saan mo planong ilista ang space? (optional)',
+    signup_id_hint: 'Para mas mabilis ang verification, pwede ka nang mag-upload ng litrato ng valid ID ngayon (optional, pwede rin mamaya).',
+    your_name: 'Pangalan mo',
+    log_in_title: 'Log in', sign_up_title: 'Gumawa ng account',
+    complete_email_password: 'Kumpletuhin ang email at password',
+    enter_your_name: 'Ilagay ang pangalan mo',
+    check_email_confirm: 'Pakicheck ang email mo para i-confirm ang account, pagkatapos mag-login.',
+    book_modal_title_prefix: 'Book',
+    pick_date_calendar_hint: 'Piliin ang petsa sa kalendaryo para makita ang available na oras.',
+    payment_label: 'Payment',
+    booking_safety_note: "Sirong connects you with the space owner directly — please confirm the spot and access details with them before paying.",
+    confirm_booking_btn: 'Confirm booking',
+    error_load_listings: 'Hindi ma-load ang listings', error_save_generic: 'Hindi na-save, subukan ulit',
+    error_update_generic: 'Hindi na-update, subukan ulit', error_delete_generic: 'Hindi ma-delete, subukan ulit',
+    error_load_bookings: 'Hindi ma-load ang bookings', error_book_generic: 'Hindi na-book, subukan ulit',
+    error_cancel_generic: 'Hindi ma-cancel, subukan ulit', error_save_rating: 'Hindi na-save ang rating',
+    error_block_generic: 'Hindi na-block, subukan ulit', error_remove_generic: 'Hindi ma-alis, subukan ulit',
+    error_save_hours: 'Hindi na-save ang oras, subukan ulit', error_save_profile: 'Hindi na-save ang profile, subukan ulit',
+    error_submit_generic: 'Hindi na-submit, subukan ulit', removed_label: 'Naalis na', cancelled_label: 'Nakansela na',
+  },
+};
+
+function t(key){
+  const lang = state.lang || 'en';
+  return (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS.en[key] || key;
+}
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -398,49 +642,49 @@ function bookingToRow(b){
 
 async function fetchListings(){
   const { data, error } = await sb.from('listings').select('*').order('created_at', { ascending: false });
-  if (error){ console.error(error); showToast('Hindi ma-load ang listings'); return []; }
+  if (error){ console.error(error); showToast(t('error_load_listings')); return []; }
   return data;
 }
 
 async function insertListing(listing){
   const { data, error } = await sb.from('listings').insert(listing).select();
-  if (error){ console.error(error); showToast('Hindi na-save, subukan ulit'); return null; }
+  if (error){ console.error(error); showToast(t('error_save_generic')); return null; }
   return data[0];
 }
 
 async function updateListingRow(id, fields){
   const { data, error } = await sb.from('listings').update(fields).eq('id', id).select();
-  if (error){ console.error(error); showToast('Hindi na-update, subukan ulit'); return null; }
+  if (error){ console.error(error); showToast(t('error_update_generic')); return null; }
   return data[0];
 }
 
 async function deleteListingRow(id){
   const { error } = await sb.from('listings').delete().eq('id', id);
-  if (error){ console.error(error); showToast('Hindi ma-delete, subukan ulit'); return false; }
+  if (error){ console.error(error); showToast(t('error_delete_generic')); return false; }
   return true;
 }
 
 async function fetchBookings(){
   const { data, error } = await sb.from('bookings').select('*').order('created_at', { ascending: false });
-  if (error){ console.error(error); showToast('Hindi ma-load ang bookings'); return []; }
+  if (error){ console.error(error); showToast(t('error_load_bookings')); return []; }
   return data.map(rowToBooking);
 }
 
 async function insertBooking(booking){
   const { data, error } = await sb.from('bookings').insert(bookingToRow(booking)).select();
-  if (error){ console.error(error); showToast('Hindi na-book, subukan ulit'); return null; }
+  if (error){ console.error(error); showToast(t('error_book_generic')); return null; }
   return rowToBooking(data[0]);
 }
 
 async function deleteBookingRow(id){
   const { error } = await sb.from('bookings').delete().eq('id', id);
-  if (error){ console.error(error); showToast('Hindi ma-cancel, subukan ulit'); return false; }
+  if (error){ console.error(error); showToast(t('error_cancel_generic')); return false; }
   return true;
 }
 
 async function updateBookingRating(id, rating){
   const { error } = await sb.from('bookings').update({ rating }).eq('id', id);
-  if (error){ console.error(error); showToast('Hindi na-save ang rating'); return false; }
+  if (error){ console.error(error); showToast(t('error_save_rating')); return false; }
   return true;
 }
 
@@ -452,13 +696,13 @@ async function fetchAvailabilityBlocks(){
 
 async function insertAvailabilityBlock(block){
   const { data, error } = await sb.from('availability_blocks').insert(block).select();
-  if (error){ console.error(error); showToast('Hindi na-block, subukan ulit'); return null; }
+  if (error){ console.error(error); showToast(t('error_block_generic')); return null; }
   return data[0];
 }
 
 async function deleteAvailabilityBlockRow(id){
   const { error } = await sb.from('availability_blocks').delete().eq('id', id);
-  if (error){ console.error(error); showToast('Hindi ma-alis, subukan ulit'); return false; }
+  if (error){ console.error(error); showToast(t('error_remove_generic')); return false; }
   return true;
 }
 
@@ -470,11 +714,12 @@ async function fetchListingHours(){
 
 async function upsertListingHours(row){
   const { data, error } = await sb.from('listing_hours').upsert(row, { onConflict: 'id' }).select();
-  if (error){ console.error(error); showToast('Hindi na-save ang oras, subukan ulit'); return null; }
+  if (error){ console.error(error); showToast(t('error_save_hours')); return null; }
   return data[0];
 }
 
 let state = {
+  lang: 'en',
   tab: 'search',
   listings: [],
   bookings: [],
@@ -523,7 +768,7 @@ function showToast(msg){
 }
 
 function featureIcon(id){ return ICONS[id] || ''; }
-function featureLabel(id){ const f = FEATURES.find(x=>x.id===id); return f ? f.label : id; }
+function featureLabel(id){ return t('feature_' + id); }
 
 function renderSearch(){
   let filtered = state.listings
@@ -535,16 +780,16 @@ function renderSearch(){
     filtered.sort((a,b) => (a._dist ?? 999) - (b._dist ?? 999));
   }
 
-  let html = `<button class="loc-btn" id="findNearMe">📍 Find spots near me</button>`;
+  let html = `<button class="loc-btn" id="findNearMe">${t('find_spots_near_me')}</button>`;
   html += `<div class="map-box" id="searchMap"></div>`;
 
   html += `<div class="chip-row">` + FEATURES.map(f => {
     const active = state.activeFilters.includes(f.id);
-    return `<span class="chip ${active?'active':''}" data-filter="${f.id}">${featureIcon(f.id)} ${f.label}</span>`;
+    return `<span class="chip ${active?'active':''}" data-filter="${f.id}">${featureIcon(f.id)} ${featureLabel(f.id)}</span>`;
   }).join('') + `</div>`;
 
   if (filtered.length === 0){
-    html += `<p class="empty">Walang spot na match sa filters mo.</p>`;
+    html += `<p class="empty">${t('no_match_filters')}</p>`;
   }
 
   html += filtered.map(l => `
@@ -557,13 +802,13 @@ function renderSearch(){
           <span class="pin">${ICONS.pin}</span>
           <div>
             <p class="card-address">${l.address}</p>
-            <p class="card-owner">Host: ${l.owner}${l._dist != null ? ` · <span class="distance-tag">${l._dist.toFixed(1)} km away</span>` : ''}</p>
+            <p class="card-owner">${t('host_label')}: ${l.owner}${l._dist != null ? ` · <span class="distance-tag">${l._dist.toFixed(1)} ${t('km_away')}</span>` : ''}</p>
           </div>
         </div>
         <span class="card-price">₱${l.price}<small>/hr</small></span>
       </div>
       <div class="badges">
-        ${l.instant ? '<span class="b-instant">Instant book</span>' : ''}
+        ${l.instant ? `<span class="b-instant">${t('book_instant')}</span>` : ''}
         ${l.fiesta ? '<span class="b-fiesta">Fiesta spot</span>' : ''}
         ${l.size_info ? `<span class="size-tag">${l.size_info}</span>` : ''}
         ${l.features.map(fid => `<span class="b-feat">${featureIcon(fid)}${featureLabel(fid)}</span>`).join('')}
@@ -572,15 +817,15 @@ function renderSearch(){
       ${(() => {
         const customDates = state.listingHours.filter(h => h.listing_id === l.id).length;
         return customDates > 0
-          ? `<p class="map-hint" style="margin-bottom:8px;">📅 May customized availability sa ${customDates} na petsa — tingnan sa Book</p>`
-          : `<p class="map-hint" style="margin-bottom:8px;">🕐 Available anumang oras (default)</p>`;
+          ? `<p class="map-hint" style="margin-bottom:8px;">${t('custom_avail_prefix')} ${customDates} ${t('custom_avail_suffix')}</p>`
+          : `<p class="map-hint" style="margin-bottom:8px;">${t('available_anytime')}</p>`;
       })()}
-      <button type="button" class="report-link" data-view-owner="${l.user_id}" style="margin-bottom:8px;">🧑 Pumunta sa profile ng may-ari →</button>
-      <button class="btn btn-primary" data-book="${l.id}">${l.instant ? 'Book agad — instant' : 'Send booking request'}</button>
+      <button type="button" class="report-link" data-view-owner="${l.user_id}" style="margin-bottom:8px;">${t('view_owner_profile')}</button>
+      <button class="btn btn-primary" data-book="${l.id}">${l.instant ? t('book_instant') : t('send_booking_request')}</button>
       ${state.user && l.user_id === state.user.id ? `
       <div style="display:flex; gap:16px; margin-top:8px;">
-        <button class="report-link" data-edit-listing="${l.id}">Edit listing</button>
-        <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">Delete</button>
+        <button class="report-link" data-edit-listing="${l.id}">${t('edit_listing')}</button>
+        <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">${t('delete')}</button>
       </div>` : ''}
     </div>
   `).join('');
@@ -652,7 +897,7 @@ function renderAvailabilityCalendar(listingId){
   }
   const year = state.formCalendarYear;
   const monthIdx = state.formCalendarMonthIdx;
-  const monthNames = ['Enero','Pebrero','Marso','Abril','Mayo','Hunyo','Hulyo','Agosto','Setyembre','Oktubre','Nobyembre','Disyembre'];
+  const monthNames = MONTH_NAMES[state.lang] || MONTH_NAMES.en;
   const totalDays = daysInMonth(year, monthIdx);
   const startWeekday = firstWeekday(year, monthIdx);
   const setDates = new Set(state.listingHours.filter(h => h.listing_id === listingId).map(h => h.hour_date));
@@ -680,57 +925,57 @@ function renderAvailabilityCalendar(listingId){
 }
 
 function renderHourToggle(listingId){
-  if (!state.formSelectedDate) return `<p class="map-hint" style="margin-top:8px;">I-click ang isang petsa sa itaas para i-set ang oras.</p>`;
+  if (!state.formSelectedDate) return `<p class="map-hint" style="margin-top:8px;">${t('click_date_set_hours')}</p>`;
   if (!state.formSelectedHours){
     const existing = state.listingHours.find(h => h.listing_id === listingId && h.hour_date === state.formSelectedDate);
     state.formSelectedHours = existing ? existing.hours.slice() : Array(24).fill(true);
   }
   const cells = state.formSelectedHours.map((open,i) => `<div class="hour-cell ${open?'open':'closed'}" data-hour-toggle="${i}">${HOUR_LABELS[i]}</div>`).join('');
   return `
-    <p class="map-hint" style="margin:10px 0 6px;">Oras para sa ${state.formSelectedDate} — i-tap para buksan/isara ang bawat oras</p>
+    <p class="map-hint" style="margin:10px 0 6px;">${t('hours_for_date_prefix')} ${state.formSelectedDate} ${t('hours_for_date_suffix')}</p>
     <div class="hour-grid">${cells}</div>
-    <button type="button" class="btn btn-green" data-save-hours="${listingId}" style="margin-top:10px;">I-save ang oras para sa petsang ito</button>
+    <button type="button" class="btn btn-green" data-save-hours="${listingId}" style="margin-top:10px;">${t('save_hours_btn')}</button>
   `;
 }
 
 function renderListForm(){
   const e = state.editingListing;
   return `
-    <h2 class="title">${e ? 'I-edit ang listing' : 'Ipa-rent ang space mo'}</h2>
-    ${e ? `<button type="button" class="report-link" id="cancelEdit">← Kanselahin ang edit</button>` : ''}
-    <p class="map-hint">Naka-login bilang <strong>${state.user ? state.user.displayName : ''}</strong></p>
-    <div class="field"><label>Address / landmark</label><input id="fAddress" placeholder="Near SM Naga" value="${e ? e.address : (state.pendingOwnerArea || '')}" /></div>
+    <h2 class="title">${e ? t('edit_listing_title') : t('new_listing_title')}</h2>
+    ${e ? `<button type="button" class="report-link" id="cancelEdit">${t('cancel_edit')}</button>` : ''}
+    <p class="map-hint">${t('logged_in_as')} <strong>${state.user ? state.user.displayName : ''}</strong></p>
+    <div class="field"><label>${t('address_landmark')}</label><input id="fAddress" placeholder="Near SM Naga" value="${e ? e.address : (state.pendingOwnerArea || '')}" /></div>
     <div class="field">
-      <label>Pin ang eksaktong lokasyon</label>
-      <p class="map-hint">I-click ang mapa para markahan ang space mo, o gamitin ang button.</p>
-      <button type="button" class="loc-btn" id="useMyLocation">📍 Use my current location</button>
+      <label>${t('pin_exact_location')}</label>
+      <p class="map-hint">${t('click_map_hint')}</p>
+      <button type="button" class="loc-btn" id="useMyLocation">${t('use_my_location')}</button>
       <div class="map-box" id="formMap"></div>
     </div>
-    <div class="field"><label>Mga litrato ng space (optional, pwede multiple)</label><input class="file-field" id="fPhoto" type="file" accept="image/*" multiple />
-      ${e && ((e.photos && e.photos.length) || e.photo) ? `<p class="map-hint">May existing photos na — mag-upload lang kung gusto mo palitan.</p>` : ''}
+    <div class="field"><label>${t('space_photos')}</label><input class="file-field" id="fPhoto" type="file" accept="image/*" multiple />
+      ${e && ((e.photos && e.photos.length) || e.photo) ? `<p class="map-hint">${t('existing_photos_hint')}</p>` : ''}
     </div>
     <div class="field">
-      <label>Sukat ng space</label>
+      <label>${t('space_size')}</label>
       <select id="fSize">
-        <option value="">-- Piliin --</option>
-        <option value="Motor lang" ${e && e.size_info === 'Motor lang' ? 'selected' : ''}>Motor lang</option>
-        <option value="1 sedan/compact car" ${e && e.size_info === '1 sedan/compact car' ? 'selected' : ''}>1 sedan/compact car</option>
-        <option value="1 SUV/van" ${e && e.size_info === '1 SUV/van' ? 'selected' : ''}>1 SUV/van</option>
-        <option value="2+ na sasakyan" ${e && e.size_info === '2+ na sasakyan' ? 'selected' : ''}>2+ na sasakyan</option>
+        <option value="">${t('choose_option')}</option>
+        <option value="Motor lang" ${e && e.size_info === 'Motor lang' ? 'selected' : ''}>${t('size_moto')}</option>
+        <option value="1 sedan/compact car" ${e && e.size_info === '1 sedan/compact car' ? 'selected' : ''}>${t('size_sedan')}</option>
+        <option value="1 SUV/van" ${e && e.size_info === '1 SUV/van' ? 'selected' : ''}>${t('size_suv')}</option>
+        <option value="2+ na sasakyan" ${e && e.size_info === '2+ na sasakyan' ? 'selected' : ''}>${t('size_multi')}</option>
       </select>
     </div>
-    <div class="field"><label>Presyo per hour (₱)</label><input id="fPrice" type="number" min="0" step="1" placeholder="15" value="${e ? e.price : ''}" /></div>
+    <div class="field"><label>${t('price_per_hour')}</label><input id="fPrice" type="number" min="0" step="1" placeholder="15" value="${e ? e.price : ''}" /></div>
     <div class="field">
-      <label>Features</label>
+      <label>${t('features_label')}</label>
       <div class="chip-row" id="fFeatures">
-        ${FEATURES.map(f => `<span class="chip ${e && e.features && e.features.includes(f.id) ? 'active' : ''}" data-formfeat="${f.id}">${featureIcon(f.id)} ${f.label}</span>`).join('')}
+        ${FEATURES.map(f => `<span class="chip ${e && e.features && e.features.includes(f.id) ? 'active' : ''}" data-formfeat="${f.id}">${featureIcon(f.id)} ${featureLabel(f.id)}</span>`).join('')}
       </div>
     </div>
-    <label class="checkline"><input type="checkbox" id="fInstant" ${!e || e.instant ? 'checked' : ''} /> Instant book (walang hintay na approval)</label>
-    <label class="checkline"><input type="checkbox" id="fFiesta" ${e && e.fiesta ? 'checked' : ''} /> Available during Peñafrancia Fiesta</label>
-    <div class="field"><label>Access notes (optional)</label><input id="fNotes" placeholder="Gate code, landmark, ask for guard" value="${e && e.notes ? e.notes : ''}" /></div>
+    <label class="checkline"><input type="checkbox" id="fInstant" ${!e || e.instant ? 'checked' : ''} /> ${t('instant_book_checkbox')}</label>
+    <label class="checkline"><input type="checkbox" id="fFiesta" ${e && e.fiesta ? 'checked' : ''} /> ${t('fiesta_checkbox')}</label>
+    <div class="field"><label>${t('access_notes')}</label><input id="fNotes" placeholder="Gate code, landmark, ask for guard" value="${e && e.notes ? e.notes : ''}" /></div>
     <div class="field">
-      <label>Preferred payment</label>
+      <label>${t('preferred_payment')}</label>
       <select id="fPayment">
         <option ${e && e.payment === 'GCash' ? 'selected' : ''}>GCash</option>
         <option ${e && e.payment === 'Cash' ? 'selected' : ''}>Cash</option>
@@ -738,15 +983,15 @@ function renderListForm(){
       </select>
     </div>
     <div class="field">
-      <label>Availability calendar</label>
+      <label>${t('availability_calendar')}</label>
       ${e ? `
-        <p class="map-hint">I-click ang isang petsa para i-set kung anong oras bukas o sarado ang space mo. Ang mga petsang may kulay na tuldok ay may na-set nang oras.</p>
+        <p class="map-hint">${t('avail_cal_hint')}</p>
         <div id="availCalWrap">${renderAvailabilityCalendar(e.id)}</div>
         <div id="availHourWrap">${renderHourToggle(e.id)}</div>
-      ` : `<p class="map-hint">Available ang calendar pagkatapos mong i-save ang listing na ito sa unang pagkakataon.</p>`}
+      ` : `<p class="map-hint">${t('avail_cal_after_save')}</p>`}
     </div>
-    <p class="safety-note">By listing, you're agreeing to let drivers park based on the details above — please only mark dates/times you're sure are free.</p>
-    <button class="btn btn-ink" id="fSubmit">${e ? 'Update listing' : '+ I-list ang space'}</button>
+    <p class="safety-note">${t('listing_safety_note')}</p>
+    <button class="btn btn-ink" id="fSubmit">${e ? t('update_listing_btn') : t('list_space_btn')}</button>
   `;
 }
 
@@ -779,7 +1024,7 @@ function renderProfileEditorHtml(){
   const verified = myProfile && myProfile.verified;
 
   return `
-    <h2 class="title">Aking profile</h2>
+    <h2 class="title">${t('my_profile')}</h2>
     <div class="card">
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
         ${avatar
@@ -787,13 +1032,13 @@ function renderProfileEditorHtml(){
           : `<div style="width:56px; height:56px; border-radius:50%; background:var(--sky); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:22px; flex-shrink:0;">${(displayName||'?').charAt(0).toUpperCase()}</div>`}
         <div>
           <p style="font-family:'Fraunces',serif; font-size:16px; color:var(--sky-deep); margin:0;">${displayName}</p>
-          <p class="map-hint" style="margin:2px 0 0;">${verified ? '✓ Verified' : 'Hindi pa verified'}</p>
+          <p class="map-hint" style="margin:2px 0 0;">${verified ? t('verified_label') : t('not_verified_label')}</p>
         </div>
       </div>
-      <div class="field"><label>Profile photo</label><input class="file-field" id="profileAvatarInput" type="file" accept="image/*" /></div>
-      <div class="field"><label>Bio / tungkol sa akin bilang host</label><input id="profileBioInput" placeholder="Ilarawan ang sarili mo..." value="${bio}" /></div>
-      <div class="field"><label>Special requests sa mga renters</label><input id="profileSpecialInput" placeholder="e.g. Paki-text bago dumating" value="${special}" /></div>
-      <button class="btn btn-ink" id="saveProfileBtn">I-save ang profile</button>
+      <div class="field"><label>${t('profile_photo')}</label><input class="file-field" id="profileAvatarInput" type="file" accept="image/*" /></div>
+      <div class="field"><label>${t('bio_label')}</label><input id="profileBioInput" placeholder="${t('bio_placeholder')}" value="${bio}" /></div>
+      <div class="field"><label>${t('special_requests_label')}</label><input id="profileSpecialInput" placeholder="${t('special_requests_placeholder')}" value="${special}" /></div>
+      <button class="btn btn-ink" id="saveProfileBtn">${t('save_profile_btn')}</button>
     </div>
   `;
 }
@@ -803,12 +1048,12 @@ function renderMySpaces(){
   const profileSection = renderProfileEditorHtml();
 
   if (!mine.length){
-    return profileSection + `<h2 class="title" style="margin-top:16px;">Aking mga space</h2>
-      <p class="empty">Wala ka pang naka-list na space.</p>
-      <button class="btn btn-ink" id="goAddSpace" style="margin-top:10px;">+ Mag-add ng space</button>`;
+    return profileSection + `<h2 class="title" style="margin-top:16px;">${t('my_spaces_title')}</h2>
+      <p class="empty">${t('no_spaces_yet')}</p>
+      <button class="btn btn-ink" id="goAddSpace" style="margin-top:10px;">${t('add_space_btn')}</button>`;
   }
 
-  let html = profileSection + `<h2 class="title" style="margin-top:16px;">Aking mga space</h2>`;
+  let html = profileSection + `<h2 class="title" style="margin-top:16px;">${t('my_spaces_title')}</h2>`;
 
   html += mine.map(l => {
     const listingBookings = state.bookings.filter(b => b.listingId === l.id);
@@ -822,37 +1067,37 @@ function renderMySpaces(){
         <div class="card-left">
           <div>
             <p class="card-address">${l.address}</p>
-            <p class="card-owner">₱${l.price}/hr · ${listingBookings.length} booking${listingBookings.length===1?'':'s'}</p>
+            <p class="card-owner">₱${l.price}/hr · ${listingBookings.length} ${t('listing_count_suffix')}${listingBookings.length===1?'':'s'}</p>
           </div>
         </div>
-        <span class="card-price">₱${earnings}<small> total</small></span>
+        <span class="card-price">₱${earnings}<small> ${t('total_label')}</small></span>
       </div>
       <div style="display:flex; gap:16px; margin:8px 0;">
-        <button class="report-link" data-edit-listing="${l.id}">Edit details &amp; availability</button>
-        <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">Delete</button>
+        <button class="report-link" data-edit-listing="${l.id}">${t('edit_details_availability')}</button>
+        <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">${t('delete')}</button>
       </div>
 
       <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
-        <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">Mga booking</p>
+        <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">${t('bookings_label')}</p>
         ${listingBookings.length ? listingBookings.map(b => `
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink); padding:4px 0;">
             <span>${b.renter} · ${b.date} ${b.start}–${b.end}</span>
             <span>₱${b.total}</span>
-          </div>`).join('') : `<p class="map-hint">Wala pang booking.</p>`}
+          </div>`).join('') : `<p class="map-hint">${t('no_bookings_yet_owner')}</p>`}
       </div>
     </div>`;
   }).join('');
 
-  html += `<button class="btn btn-ink" id="goAddSpace" style="margin-top:6px;">+ Mag-add ng bagong space</button>`;
+  html += `<button class="btn btn-ink" id="goAddSpace" style="margin-top:6px;">${t('add_new_space_btn')}</button>`;
   return html;
 }
 
 function renderBookings(){
 
   const mine = state.user ? state.bookings.filter(b => b.userId === state.user.id) : [];
-  let html = `<h2 class="title">Mga booking ko</h2>`;
+  let html = `<h2 class="title">${t('my_bookings_title')}</h2>`;
   if (mine.length === 0){
-    html += `<p class="empty">Wala ka pang booking.</p>`;
+    html += `<p class="empty">${t('no_bookings_yet')}</p>`;
   }
   html += mine.map(b => `
     <div class="ticket">
@@ -861,17 +1106,17 @@ function renderBookings(){
         <p class="ticket-addr">${b.address}</p>
         <p class="ticket-time">${b.date} · ${b.start}–${b.end}</p>
         <div class="rating-row">
-          <span class="rating-label">Rate this spot:</span>
+          <span class="rating-label">${t('rate_this_spot')}</span>
           <span class="stars" data-rate="${b.id}">
             ${[1,2,3,4,5].map(n => `<svg class="star ${ (b.rating||0) >= n ? 'filled' : ''}" data-star="${n}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>`).join('')}
           </span>
         </div>
-        <button class="report-link" data-report="${b.id}">Report a problem</button>
+        <button class="report-link" data-report="${b.id}">${t('report_link')}</button>
       </div>
       <div class="ticket-divider"></div>
       <div class="ticket-side">
         <span class="ticket-price">₱${b.total}</span>
-        <button class="ticket-cancel" data-cancel="${b.id}">Cancel</button>
+        <button class="ticket-cancel" data-cancel="${b.id}">${t('cancel_btn')}</button>
       </div>
     </div>
   `).join('');
@@ -880,8 +1125,8 @@ function renderBookings(){
 
 function loginRequiredBlock(actionText){
   return `<div style="padding:20px 0; text-align:center;">
-    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">Kailangan mag-login muna para ${actionText}.</p>
-    <button class="btn btn-primary" id="goLogin" style="max-width:200px; margin:0 auto;">Log in / Sign up</button>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">${t('login_required_prefix')} ${actionText}.</p>
+    <button class="btn btn-primary" id="goLogin" style="max-width:200px; margin:0 auto;">${t('login_signup_btn')}</button>
   </div>`;
 }
 
@@ -893,7 +1138,7 @@ function renderAccountRow(){
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.onclick = signOutUser;
   } else {
-    row.innerHTML = `<span class="account-label">Hindi naka-login</span><button class="account-btn" id="loginBtnHeader">Log in</button>`;
+    row.innerHTML = `<span class="account-label">${t('not_logged_in')}</span><button class="account-btn" id="loginBtnHeader">${t('login_btn')}</button>`;
     const loginBtn = document.getElementById('loginBtnHeader');
     if (loginBtn) loginBtn.onclick = () => openAuthModal();
   }
@@ -907,9 +1152,9 @@ function render(){
     return;
   }
   if (state.tab === 'search') content.innerHTML = renderSearch();
-  else if (state.tab === 'list') content.innerHTML = state.user ? renderListForm() : loginRequiredBlock('makapag-list ng space');
-  else if (state.tab === 'myspaces') content.innerHTML = state.user ? renderMySpaces() : loginRequiredBlock('makita ang iyong mga space');
-  else content.innerHTML = state.user ? renderBookings() : loginRequiredBlock('makita ang mga booking mo');
+  else if (state.tab === 'list') content.innerHTML = state.user ? renderListForm() : loginRequiredBlock(t('login_required_list'));
+  else if (state.tab === 'myspaces') content.innerHTML = state.user ? renderMySpaces() : loginRequiredBlock(t('login_required_myspaces'));
+  else content.innerHTML = state.user ? renderBookings() : loginRequiredBlock(t('login_required_bookings'));
 
   if (state.tab === 'search') setTimeout(initSearchMap, 0);
   if (state.tab === 'list' && state.user) setTimeout(initFormMap, 0);
@@ -956,7 +1201,7 @@ function attachContentListeners(){
 
     let avatarDataUrl = null;
     if (avatarFile){
-      showToast('Ino-optimize ang litrato...');
+      showToast(t('optimizing_photos'));
       avatarDataUrl = await resizeImage(avatarFile, 400);
     }
 
@@ -966,7 +1211,7 @@ function attachContentListeners(){
     const saved = await updateProfileFields(state.user.id, fields);
     if (saved){
       state.profiles = [...state.profiles.filter(p => p.id !== state.user.id), saved];
-      showToast('Na-save ang profile mo');
+      showToast(t('profile_saved'));
       render();
     }
   };
@@ -988,31 +1233,31 @@ function attachContentListeners(){
 
   const findNear = document.getElementById('findNearMe');
   if (findNear) findNear.onclick = () => {
-    if (!navigator.geolocation){ showToast('Hindi supported ng browser mo ang location'); return; }
+    if (!navigator.geolocation){ showToast(t('location_not_supported')); return; }
     findNear.textContent = 'Locating...';
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         state.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        showToast('Nakita ang lokasyon mo');
+        showToast(t('location_found'));
         render();
       },
-      () => { showToast('Hindi ma-access ang location, i-allow sa browser settings'); findNear.textContent = '📍 Find spots near me'; },
+      () => { showToast(t('location_denied')); findNear.textContent = t('find_spots_near_me'); },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
   const useMyLoc = document.getElementById('useMyLocation');
   if (useMyLoc) useMyLoc.onclick = () => {
-    if (!navigator.geolocation){ showToast('Hindi supported ng browser mo ang location'); return; }
+    if (!navigator.geolocation){ showToast(t('location_not_supported')); return; }
     useMyLoc.textContent = 'Locating...';
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         state.formPin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        useMyLoc.textContent = '📍 Use my current location';
+        useMyLoc.textContent = t('use_my_location');
         initFormMap();
-        showToast('Napin ang lokasyon mo, i-drag para i-adjust');
+        showToast(t('location_pinned'));
       },
-      () => { showToast('Hindi ma-access ang location, i-allow sa browser settings'); useMyLoc.textContent = '📍 Use my current location'; },
+      () => { showToast(t('location_denied')); useMyLoc.textContent = t('use_my_location'); },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
@@ -1051,11 +1296,11 @@ function attachContentListeners(){
     el.onclick = async () => {
       const listing = state.listings.find(l => l.id === el.dataset.deleteListing);
       if (!listing || !state.user || listing.user_id !== state.user.id) return;
-      if (!window.confirm('Sigurado ka bang gusto mo i-delete ang listing na ito?')) return;
+      if (!window.confirm(t('confirm_delete_listing'))) return;
       const ok = await deleteListingRow(listing.id);
       if (ok){
         state.listings = state.listings.filter(l => l.id !== listing.id);
-        showToast('Na-delete ang listing');
+        showToast(t('listing_deleted'));
         render();
       }
     };
@@ -1106,7 +1351,7 @@ function attachContentListeners(){
       const saved = await upsertListingHours(row);
       if (saved){
         state.listingHours = [...state.listingHours.filter(h => h.id !== saved.id), saved];
-        showToast('Na-save ang oras para sa petsang iyon');
+        showToast(t('hours_saved'));
         render();
       }
     };
@@ -1136,12 +1381,12 @@ function attachContentListeners(){
       const block_date = dateEl.value;
       const start_time = startEl.value;
       const end_time = endEl.value;
-      if (!block_date || !start_time || !end_time){ showToast('Kumpletuhin ang date at oras'); return; }
+      if (!block_date || !start_time || !end_time){ showToast(t('complete_date_time')); return; }
       const block = { id: uid(), listing_id: listingId, user_id: state.user.id, block_date, start_time, end_time };
       const saved = await insertAvailabilityBlock(block);
       if (saved){
         state.availabilityBlocks = [...state.availabilityBlocks, saved];
-        showToast('Na-block ang oras na iyon');
+        showToast(t('time_blocked'));
         render();
       }
     };
@@ -1153,7 +1398,7 @@ function attachContentListeners(){
       const ok = await deleteAvailabilityBlockRow(id);
       if (ok){
         state.availabilityBlocks = state.availabilityBlocks.filter(bl => bl.id !== id);
-        showToast('Naalis na');
+        showToast(t('removed_label'));
         render();
       }
     };
@@ -1164,7 +1409,7 @@ function attachContentListeners(){
       const ok = await deleteBookingRow(el.dataset.cancel);
       if (ok){
         state.bookings = state.bookings.filter(b => b.id !== el.dataset.cancel);
-        showToast('Cancelled');
+        showToast(t('cancelled_label'));
         render();
       }
     };
@@ -1178,7 +1423,7 @@ function attachContentListeners(){
         const ok = await updateBookingRating(bookingId, n);
         if (ok){
           state.bookings = state.bookings.map(b => b.id === bookingId ? { ...b, rating: n } : b);
-          showToast('Salamat sa rating!');
+          showToast(t('thanks_rating'));
           render();
         }
       };
@@ -1187,25 +1432,25 @@ function attachContentListeners(){
 
   document.querySelectorAll('[data-report]').forEach(el => {
     el.onclick = () => {
-      const msg = window.prompt('Ano ang problema? (e.g. occupied ang spot, di makontak ang owner)');
+      const msg = window.prompt(t('report_problem_prompt'));
       if (msg && msg.trim()){
         const reports = JSON.parse(localStorage.getItem('sirong_reports') || '[]');
         reports.push({ id: uid(), bookingId: el.dataset.report, message: msg.trim(), at: new Date().toISOString() });
         localStorage.setItem('sirong_reports', JSON.stringify(reports));
-        showToast('Naisumite ang report, salamat');
+        showToast(t('report_submitted'));
       }
     };
   });
 }
 
 function submitListing(){
-  if (!state.user){ showToast('Kailangan mag-login muna'); return; }
+  if (!state.user){ showToast(t('login_first')); return; }
   const editing = state.editingListing;
   const owner = state.user.displayName;
   const address = document.getElementById('fAddress').value.trim();
   const price = Number(document.getElementById('fPrice').value);
-  if (!address || !price) { showToast('Kumpletuhin ang address, price'); return; }
-  if (!state.formPin) { showToast('I-pin muna ang lokasyon sa mapa'); return; }
+  if (!address || !price) { showToast(t('complete_address_price')); return; }
+  if (!state.formPin) { showToast(t('pin_location_first')); return; }
   const features = Array.from(document.querySelectorAll('[data-formfeat].active')).map(el => el.dataset.formfeat);
   const notes = document.getElementById('fNotes').value.trim();
   const instant = document.getElementById('fInstant').checked;
@@ -1227,7 +1472,7 @@ function submitListing(){
         state.listings = state.listings.map(l => l.id === editing.id ? updated : l);
         state.editingListing = null;
         state.formPin = null;
-        showToast('Na-update ang listing');
+        showToast(t('listing_updated'));
         state.tab = 'search';
         render();
       }
@@ -1237,7 +1482,7 @@ function submitListing(){
       if (saved){
         state.listings = [saved, ...state.listings];
         state.formPin = null;
-        showToast('Nakalista na ang space mo');
+        showToast(t('listing_created'));
         state.tab = 'search';
         render();
       }
@@ -1245,7 +1490,7 @@ function submitListing(){
   }
 
   if (files.length){
-    showToast('Ino-optimize ang mga litrato...');
+    showToast(t('optimizing_photos_plural'));
     Promise.all(files.map(f => resizeImage(f, 1280))).then(results => {
       finish(results.filter(Boolean));
     });
@@ -1262,7 +1507,7 @@ function renderBookingCalendarHtml(listingId){
   }
   const year = state.bookingCalYear;
   const monthIdx = state.bookingCalMonthIdx;
-  const monthNames = ['Enero','Pebrero','Marso','Abril','Mayo','Hunyo','Hulyo','Agosto','Setyembre','Oktubre','Nobyembre','Disyembre'];
+  const monthNames = MONTH_NAMES[state.lang] || MONTH_NAMES.en;
   const totalDays = daysInMonth(year, monthIdx);
   const startWeekday = firstWeekday(year, monthIdx);
   const setDates = new Set(state.listingHours.filter(h => h.listing_id === listingId).map(h => h.hour_date));
@@ -1290,12 +1535,12 @@ function renderBookingCalendarHtml(listingId){
 }
 
 function renderBookingHoursHtml(listingId){
-  if (!state.bookingSelectedDate) return `<p class="map-hint" style="margin:8px 0;">Pumili ng petsa sa itaas para makita ang oras.</p>`;
+  if (!state.bookingSelectedDate) return `<p class="map-hint" style="margin:8px 0;">${t('pick_date_see_hours')}</p>`;
   const row = state.listingHours.find(h => h.listing_id === listingId && h.hour_date === state.bookingSelectedDate);
   const hours = row ? row.hours : Array(24).fill(true);
   const cells = hours.map((open,i) => `<div class="hour-cell ${open?'open':'closed'}">${HOUR_LABELS[i]}</div>`).join('');
   return `
-    <p class="map-hint" style="margin:8px 0 6px;">Availability para sa ${state.bookingSelectedDate} (berde = bukas):</p>
+    <p class="map-hint" style="margin:8px 0 6px;">${t('availability_for')} ${state.bookingSelectedDate} ${t('open_green')}:</p>
     <div class="hour-grid">${cells}</div>
   `;
 }
@@ -1347,11 +1592,11 @@ function isRangeAvailable(listingId, date, startTime, endTime){
 
 function openBooking(listingId){
   state.bookingTarget = state.listings.find(l => l.id === listingId);
-  document.getElementById('modalTitle').textContent = 'Book ' + state.bookingTarget.address;
+  document.getElementById('modalTitle').textContent = t('book_modal_title_prefix') + ' ' + state.bookingTarget.address;
   document.getElementById('bfDate').value = '';
   document.getElementById('bfStart').value = '';
   document.getElementById('bfEnd').value = '';
-  document.getElementById('bfPay').textContent = 'Payment: ' + (state.bookingTarget.payment || 'GCash');
+  document.getElementById('bfPay').textContent = t('payment_label') + ': ' + (state.bookingTarget.payment || 'GCash');
   state.bookingCalYear = null;
   state.bookingCalMonthIdx = null;
   state.bookingSelectedDate = null;
@@ -1359,11 +1604,53 @@ function openBooking(listingId){
   document.getElementById('overlay').classList.remove('hidden');
 }
 
+function applyStaticTranslations(){
+  const authTitleEl = document.getElementById('authTitle');
+  if (authTitleEl) authTitleEl.textContent = state.authMode === 'signup' ? t('sign_up_title') : t('log_in_title');
+  const tabLoginEl = document.getElementById('tabLogin');
+  if (tabLoginEl) tabLoginEl.textContent = t('log_in_title');
+  const tabSignupEl = document.getElementById('tabSignup');
+  if (tabSignupEl) tabSignupEl.textContent = t('sign_up_title');
+  const authNameEl = document.getElementById('authName');
+  if (authNameEl) authNameEl.placeholder = t('your_name');
+  const authAmALabelEl = document.getElementById('authAmALabel');
+  if (authAmALabelEl) authAmALabelEl.textContent = t('signup_am_a');
+  const roleDriverEl = document.getElementById('roleDriver');
+  if (roleDriverEl) roleDriverEl.textContent = t('driver_signup_role');
+  const roleOwnerEl = document.getElementById('roleOwner');
+  if (roleOwnerEl) roleOwnerEl.textContent = t('owner_signup_role');
+  const authAreaLabelEl = document.getElementById('authAreaLabel');
+  if (authAreaLabelEl) authAreaLabelEl.textContent = t('signup_area_label');
+  const authIdHintEl = document.getElementById('authIdHint');
+  if (authIdHintEl) authIdHintEl.textContent = t('signup_id_hint');
+  const authSubmitEl = document.getElementById('authSubmit');
+  if (authSubmitEl) authSubmitEl.textContent = state.authMode === 'signup' ? t('sign_up_title') : t('log_in_title');
+  const langToggleEl = document.getElementById('langToggle');
+  if (langToggleEl) langToggleEl.textContent = state.lang === 'en' ? 'TL' : 'EN';
+  const bookingCalHintEl = document.getElementById('bookingCalHint');
+  if (bookingCalHintEl) bookingCalHintEl.textContent = t('pick_date_calendar_hint');
+  const bookingSafetyNoteEl = document.getElementById('bookingSafetyNote');
+  if (bookingSafetyNoteEl) bookingSafetyNoteEl.textContent = t('booking_safety_note');
+  const bfConfirmEl = document.getElementById('bfConfirm');
+  if (bfConfirmEl) bfConfirmEl.textContent = t('confirm_booking_btn');
+}
+
+document.getElementById('langToggle').onclick = () => {
+  state.lang = state.lang === 'en' ? 'tl' : 'en';
+  applyStaticTranslations();
+  render();
+};
+
 document.getElementById('modalClose').onclick = () => {
   document.getElementById('overlay').classList.add('hidden');
 };
 
 document.getElementById('aboutBtn').onclick = () => {
+  const showTL = state.lang === 'tl';
+  document.getElementById('aboutTabTL').classList.toggle('active', showTL);
+  document.getElementById('aboutTabEN').classList.toggle('active', !showTL);
+  document.getElementById('aboutContentTL').style.display = showTL ? 'block' : 'none';
+  document.getElementById('aboutContentEN').style.display = showTL ? 'none' : 'block';
   document.getElementById('aboutOverlay').classList.remove('hidden');
 };
 document.getElementById('aboutClose').onclick = () => {
@@ -1407,13 +1694,13 @@ function renderOwnerProfileHtml(ownerId){
         : `<div style="width:56px; height:56px; border-radius:50%; background:var(--sky); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:22px; flex-shrink:0;">${displayName.charAt(0).toUpperCase()}</div>`}
       <div>
         <p style="font-family:'Fraunces',serif; font-size:17px; color:var(--sky-deep); margin:0;">${displayName}${verified ? ' <span class="verify-badge">✓ Verified</span>' : ''}</p>
-        <p class="map-hint" style="margin:2px 0 0;">${ownerListings.length} na listing · ${avgRating ? '⭐ ' + avgRating.toFixed(1) + ' average rating' : 'Wala pang rating'}</p>
+        <p class="map-hint" style="margin:2px 0 0;">${ownerListings.length} ${t('listing_count_suffix')} · ${avgRating ? '⭐ ' + avgRating.toFixed(1) + ' ' + t('average_rating') : t('no_rating_yet')}</p>
       </div>
     </div>
-    ${bio ? `<p class="notes" style="margin-bottom:10px;">${bio}</p>` : `<p class="map-hint" style="margin-bottom:10px;">Wala pang bio ang may-ari na ito.</p>`}
+    ${bio ? `<p class="notes" style="margin-bottom:10px;">${bio}</p>` : `<p class="map-hint" style="margin-bottom:10px;">${t('no_bio_owner')}</p>`}
     ${specialReq ? `<p style="font-size:12px; color:#9A6A1E; background:#FCEBD2; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><strong>Special requests:</strong> ${specialReq}</p>` : ''}
     ${allPhotos.length ? `
-      <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">Mga litrato ng kanyang mga space</p>
+      <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">${t('owner_space_photos')}</p>
       <div class="thumb-row" style="flex-wrap:wrap;">${allPhotos.slice(0,8).map(p => `<img class="thumb" src="${p}" style="width:64px; height:64px;" />`).join('')}</div>
     ` : ''}
   `;
@@ -1435,14 +1722,14 @@ document.getElementById('lightboxPrev').onclick = () => window.__lightboxNav(-1)
 document.getElementById('lightboxNext').onclick = () => window.__lightboxNav(1);
 
 document.getElementById('bfConfirm').onclick = async () => {
-  if (!state.user){ showToast('Kailangan mag-login muna'); return; }
+  if (!state.user){ showToast(t('login_first')); return; }
   const name = state.user.displayName;
   const date = document.getElementById('bfDate').value;
   const start = document.getElementById('bfStart').value;
   const end = document.getElementById('bfEnd').value;
-  if (!date || !start || !end) { showToast('Kumpletuhin ang lahat ng field'); return; }
+  if (!date || !start || !end) { showToast(t('complete_email_password')); return; }
   if (!isRangeAvailable(state.bookingTarget.id, date, start, end)){
-    showToast('Naka-close ang space sa oras na iyon, pumili ng ibang oras.');
+    showToast(t('time_closed'));
     return;
   }
   const hours = Math.max(1, Number(end.split(':')[0]) - Number(start.split(':')[0]));
@@ -1455,7 +1742,7 @@ document.getElementById('bfConfirm').onclick = async () => {
   if (saved){
     state.bookings = [saved, ...state.bookings];
     document.getElementById('overlay').classList.add('hidden');
-    showToast(saved.instant ? 'Naka-book agad — instant confirm' : 'Booking request sent, hintayin approval');
+    showToast(saved.instant ? t('booking_instant_confirmed') : t('booking_request_sent'));
     state.tab = 'bookings';
     render();
   }
@@ -1488,8 +1775,8 @@ function setAuthMode(mode){
   document.getElementById('authNameField').style.display = mode === 'signup' ? 'block' : 'none';
   document.getElementById('authRoleField').style.display = mode === 'signup' ? 'block' : 'none';
   document.getElementById('authOwnerFields').style.display = (mode === 'signup' && state.signupRole === 'owner') ? 'block' : 'none';
-  document.getElementById('authTitle').textContent = mode === 'signup' ? 'Gumawa ng account' : 'Log in';
-  document.getElementById('authSubmit').textContent = mode === 'signup' ? 'Gumawa ng account' : 'Log in';
+  document.getElementById('authTitle').textContent = mode === 'signup' ? t('sign_up_title') : t('log_in_title');
+  document.getElementById('authSubmit').textContent = mode === 'signup' ? t('sign_up_title') : t('log_in_title');
   document.getElementById('authError').style.display = 'none';
 }
 
@@ -1517,15 +1804,15 @@ document.getElementById('authSubmit').onclick = async () => {
   const errorEl = document.getElementById('authError');
   errorEl.style.display = 'none';
 
-  if (!email || !password){ errorEl.textContent = 'Kumpletuhin ang email at password'; errorEl.style.display = 'block'; return; }
+  if (!email || !password){ errorEl.textContent = t('complete_email_password'); errorEl.style.display = 'block'; return; }
 
   if (state.authMode === 'signup'){
     const displayName = document.getElementById('authName').value.trim();
-    if (!displayName){ errorEl.textContent = 'Ilagay ang pangalan mo'; errorEl.style.display = 'block'; return; }
+    if (!displayName){ errorEl.textContent = t('enter_your_name'); errorEl.style.display = 'block'; return; }
     const role = state.signupRole || 'driver';
     const { user, error } = await signUp(email, password, displayName, role);
     if (error){ errorEl.textContent = error.message; errorEl.style.display = 'block'; return; }
-    if (!user){ errorEl.textContent = 'Pakicheck ang email mo para i-confirm ang account, pagkatapos mag-login.'; errorEl.style.display = 'block'; return; }
+    if (!user){ errorEl.textContent = t('check_email_confirm'); errorEl.style.display = 'block'; return; }
     state.user = user;
 
     if (role === 'owner'){
@@ -1561,6 +1848,7 @@ document.getElementById('authSubmit').onclick = async () => {
 };
 
 async function init(){
+  applyStaticTranslations();
   render();
   const { data: sessionData } = await sb.auth.getSession();
   state.user = sessionData && sessionData.session ? mapUser(sessionData.session.user) : null;
