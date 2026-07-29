@@ -125,6 +125,20 @@
   .auth-tab{flex:1; text-align:center; padding:8px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; background:#F0F8FB; color:var(--muted);}
   .auth-tab.active{background:var(--sky); color:#fff;}
   .auth-error{font-size:12px; color:#A8362A; margin:0 0 8px;}
+
+  .cal-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .cal-nav{background:var(--cream); border:1px solid var(--line); border-radius:6px; width:28px; height:28px; cursor:pointer; color:var(--sky-deep); font-size:14px;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:6px;}
+  .cal-dow{font-size:10px; color:var(--muted); text-align:center; font-weight:600;}
+  .cal-day{font-size:12px; text-align:center; padding:6px 0; border-radius:6px; cursor:pointer; color:var(--ink); position:relative;}
+  .cal-day:hover{background:var(--cream);}
+  .cal-day.selected{background:var(--sky); color:#fff; font-weight:600;}
+  .cal-day.has-custom::after{content:''; position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--green-deep);}
+  .cal-day.selected.has-custom::after{background:#fff;}
+  .hour-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
+  .hour-cell{font-size:11px; text-align:center; padding:7px 2px; border-radius:6px; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--muted); user-select:none;}
+  .hour-cell.open{background:var(--green); color:var(--green-deep); border-color:var(--green); font-weight:600;}
+  .hour-cell.closed{background:#EFF1F2; color:#9AA5A9;}
 </style>
 </head>
 <body>
@@ -431,15 +445,15 @@ async function deleteAvailabilityBlockRow(id){
   return true;
 }
 
-async function fetchListingAvailability(){
-  const { data, error } = await sb.from('listing_availability').select('*');
+async function fetchListingHours(){
+  const { data, error } = await sb.from('listing_hours').select('*');
   if (error){ console.error(error); return []; }
   return data;
 }
 
-async function upsertListingAvailability(row){
-  const { data, error } = await sb.from('listing_availability').upsert(row, { onConflict: 'listing_id' }).select();
-  if (error){ console.error(error); showToast('Hindi na-save ang availability, subukan ulit'); return null; }
+async function upsertListingHours(row){
+  const { data, error } = await sb.from('listing_hours').upsert(row, { onConflict: 'id' }).select();
+  if (error){ console.error(error); showToast('Hindi na-save ang oras, subukan ulit'); return null; }
   return data[0];
 }
 
@@ -448,7 +462,11 @@ let state = {
   listings: [],
   bookings: [],
   availabilityBlocks: [],
-  listingAvailability: [],
+  listingHours: [],
+  formCalendarYear: null,
+  formCalendarMonthIdx: null,
+  formSelectedDate: null,
+  formSelectedHours: null,
   activeFilters: [],
   fiestaMode: false,
   bookingTarget: null,
@@ -591,6 +609,62 @@ window.__bookFromMap = function(id){
   if (listing) openBooking(id);
 };
 
+function pad2(n){ return n.toString().padStart(2,'0'); }
+function daysInMonth(year, monthIdx){ return new Date(year, monthIdx+1, 0).getDate(); }
+function firstWeekday(year, monthIdx){ return new Date(year, monthIdx, 1).getDay(); }
+function dateKey(year, monthIdx, day){ return `${year}-${pad2(monthIdx+1)}-${pad2(day)}`; }
+
+const HOUR_LABELS = ['12AM','1AM','2AM','3AM','4AM','5AM','6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM','10PM','11PM'];
+
+function renderAvailabilityCalendar(listingId){
+  if (state.formCalendarYear == null){
+    const now = new Date();
+    state.formCalendarYear = now.getFullYear();
+    state.formCalendarMonthIdx = now.getMonth();
+  }
+  const year = state.formCalendarYear;
+  const monthIdx = state.formCalendarMonthIdx;
+  const monthNames = ['Enero','Pebrero','Marso','Abril','Mayo','Hunyo','Hulyo','Agosto','Setyembre','Oktubre','Nobyembre','Disyembre'];
+  const totalDays = daysInMonth(year, monthIdx);
+  const startWeekday = firstWeekday(year, monthIdx);
+  const setDates = new Set(state.listingHours.filter(h => h.listing_id === listingId).map(h => h.hour_date));
+
+  let cells = '';
+  for (let i=0;i<startWeekday;i++){ cells += `<div></div>`; }
+  for (let d=1; d<=totalDays; d++){
+    const key = dateKey(year, monthIdx, d);
+    const isSelected = state.formSelectedDate === key;
+    const hasCustom = setDates.has(key);
+    cells += `<div class="cal-day ${isSelected?'selected':''} ${hasCustom?'has-custom':''}" data-cal-date="${key}" data-listing="${listingId}">${d}</div>`;
+  }
+
+  return `
+    <div class="cal-header">
+      <button type="button" class="cal-nav" data-cal-prev="${listingId}">‹</button>
+      <span class="serif" style="font-size:14px; color:var(--sky-deep);">${monthNames[monthIdx]} ${year}</span>
+      <button type="button" class="cal-nav" data-cal-next="${listingId}">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-dow">Su</div><div class="cal-dow">Mo</div><div class="cal-dow">Tu</div><div class="cal-dow">We</div><div class="cal-dow">Th</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div>
+      ${cells}
+    </div>
+  `;
+}
+
+function renderHourToggle(listingId){
+  if (!state.formSelectedDate) return `<p class="map-hint" style="margin-top:8px;">I-click ang isang petsa sa itaas para i-set ang oras.</p>`;
+  if (!state.formSelectedHours){
+    const existing = state.listingHours.find(h => h.listing_id === listingId && h.hour_date === state.formSelectedDate);
+    state.formSelectedHours = existing ? existing.hours.slice() : Array(24).fill(true);
+  }
+  const cells = state.formSelectedHours.map((open,i) => `<div class="hour-cell ${open?'open':'closed'}" data-hour-toggle="${i}">${HOUR_LABELS[i]}</div>`).join('');
+  return `
+    <p class="map-hint" style="margin:10px 0 6px;">Oras para sa ${state.formSelectedDate} — i-tap para buksan/isara ang bawat oras</p>
+    <div class="hour-grid">${cells}</div>
+    <button type="button" class="btn btn-green" data-save-hours="${listingId}" style="margin-top:10px;">I-save ang oras para sa petsang ito</button>
+  `;
+}
+
 function renderListForm(){
   const e = state.editingListing;
   return `
@@ -635,6 +709,14 @@ function renderListForm(){
         <option ${e && e.payment === 'GCash or Cash' ? 'selected' : ''}>GCash or Cash</option>
       </select>
     </div>
+    <div class="field">
+      <label>Availability calendar</label>
+      ${e ? `
+        <p class="map-hint">I-click ang isang petsa para i-set kung anong oras bukas o sarado ang space mo. Ang mga petsang may kulay na tuldok ay may na-set nang oras.</p>
+        <div id="availCalWrap">${renderAvailabilityCalendar(e.id)}</div>
+        <div id="availHourWrap">${renderHourToggle(e.id)}</div>
+      ` : `<p class="map-hint">Available ang calendar pagkatapos mong i-save ang listing na ito sa unang pagkakataon.</p>`}
+    </div>
     <p class="safety-note">By listing, you're agreeing to let drivers park based on the details above — please only mark dates/times you're sure are free.</p>
     <button class="btn btn-ink" id="fSubmit">${e ? 'Update listing' : '+ I-list ang space'}</button>
   `;
@@ -674,8 +756,6 @@ function renderMySpaces(){
   html += mine.map(l => {
     const listingBookings = state.bookings.filter(b => b.listingId === l.id);
     const earnings = listingBookings.reduce((sum, b) => sum + (Number(b.total) || 0), 0);
-    const blocks = state.availabilityBlocks.filter(bl => bl.listing_id === l.id);
-    const avail = state.listingAvailability.find(a => a.listing_id === l.id);
     const photos = (l.photos && l.photos.length) ? l.photos : (l.photo ? [l.photo] : []);
 
     return `
@@ -691,34 +771,8 @@ function renderMySpaces(){
         <span class="card-price">₱${earnings}<small> total</small></span>
       </div>
       <div style="display:flex; gap:16px; margin:8px 0;">
-        <button class="report-link" data-edit-listing="${l.id}">Edit details</button>
+        <button class="report-link" data-edit-listing="${l.id}">Edit details &amp; availability</button>
         <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">Delete</button>
-      </div>
-
-      <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
-        <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">Available na oras (magsisimula sa petsang ito)</p>
-        ${avail ? `<p class="map-hint" style="margin-bottom:8px;">Kasalukuyan: simula ${avail.effective_date}, ${avail.start_time}–${avail.end_time} araw-araw.</p>` : `<p class="map-hint" style="margin-bottom:8px;">Wala pang na-set, available by default anumang oras.</p>`}
-        <div class="field"><input type="date" id="availDate-${l.id}" value="${avail ? avail.effective_date : ''}" /></div>
-        <div class="time-row" style="margin-bottom:8px;">
-          <input type="time" id="availStart-${l.id}" value="${avail ? avail.start_time : ''}" />
-          <input type="time" id="availEnd-${l.id}" value="${avail ? avail.end_time : ''}" />
-        </div>
-        <button class="btn btn-ghost" data-save-availability="${l.id}" style="width:auto; padding:8px 14px;">I-save ang availability</button>
-      </div>
-
-      <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
-        <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">I-block ang isang oras (hindi available)</p>
-        <div class="field"><input type="date" class="blockDate" id="blockDate-${l.id}" /></div>
-        <div class="time-row" style="margin-bottom:8px;">
-          <input type="time" class="blockStart" id="blockStart-${l.id}" />
-          <input type="time" class="blockEnd" id="blockEnd-${l.id}" />
-        </div>
-        <button class="btn btn-ghost" data-block-add="${l.id}" style="width:auto; padding:8px 14px;">+ I-block ang oras na ito</button>
-        ${blocks.length ? `<div style="margin-top:8px;">` + blocks.map(bl => `
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); padding:4px 0;">
-            <span>${bl.block_date} · ${bl.start_time}–${bl.end_time}</span>
-            <button class="report-link" data-block-remove="${bl.id}" style="color:#A8362A; margin:0;">Alisin</button>
-          </div>`).join('') + `</div>` : `<p class="map-hint">Wala pang blocked na oras.</p>`}
       </div>
 
       <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
@@ -883,6 +937,10 @@ function attachContentListeners(){
   if (cancelEdit) cancelEdit.onclick = () => {
     state.editingListing = null;
     state.formPin = null;
+    state.formCalendarYear = null;
+    state.formCalendarMonthIdx = null;
+    state.formSelectedDate = null;
+    state.formSelectedHours = null;
     state.tab = 'search';
     render();
   };
@@ -893,6 +951,10 @@ function attachContentListeners(){
       if (!listing || !state.user || listing.user_id !== state.user.id) return;
       state.editingListing = listing;
       state.formPin = (listing.lat && listing.lng) ? { lat: listing.lat, lng: listing.lng } : null;
+      state.formCalendarYear = null;
+      state.formCalendarMonthIdx = null;
+      state.formSelectedDate = null;
+      state.formSelectedHours = null;
       state.tab = 'list';
       render();
     };
@@ -912,6 +974,57 @@ function attachContentListeners(){
     };
   });
 
+  document.querySelectorAll('[data-cal-date]').forEach(el => {
+    el.onclick = () => {
+      state.formSelectedDate = el.dataset.calDate;
+      state.formSelectedHours = null;
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-cal-prev]').forEach(el => {
+    el.onclick = () => {
+      state.formCalendarMonthIdx--;
+      if (state.formCalendarMonthIdx < 0){ state.formCalendarMonthIdx = 11; state.formCalendarYear--; }
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-cal-next]').forEach(el => {
+    el.onclick = () => {
+      state.formCalendarMonthIdx++;
+      if (state.formCalendarMonthIdx > 11){ state.formCalendarMonthIdx = 0; state.formCalendarYear++; }
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-hour-toggle]').forEach(el => {
+    el.onclick = () => {
+      const idx = Number(el.dataset.hourToggle);
+      state.formSelectedHours[idx] = !state.formSelectedHours[idx];
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-save-hours]').forEach(el => {
+    el.onclick = async () => {
+      const listingId = el.dataset.saveHours;
+      const row = {
+        id: `${listingId}_${state.formSelectedDate}`,
+        listing_id: listingId,
+        user_id: state.user.id,
+        hour_date: state.formSelectedDate,
+        hours: state.formSelectedHours,
+      };
+      const saved = await upsertListingHours(row);
+      if (saved){
+        state.listingHours = [...state.listingHours.filter(h => h.id !== saved.id), saved];
+        showToast('Na-save ang oras para sa petsang iyon');
+        render();
+      }
+    };
+  });
+
   const goLogin = document.getElementById('goLogin');
   if (goLogin) goLogin.onclick = () => openAuthModal();
 
@@ -919,29 +1032,13 @@ function attachContentListeners(){
   if (goAddSpace) goAddSpace.onclick = () => {
     state.editingListing = null;
     state.formPin = null;
+    state.formCalendarYear = null;
+    state.formCalendarMonthIdx = null;
+    state.formSelectedDate = null;
+    state.formSelectedHours = null;
     state.tab = 'list';
     render();
   };
-
-  document.querySelectorAll('[data-save-availability]').forEach(el => {
-    el.onclick = async () => {
-      const listingId = el.dataset.saveAvailability;
-      const dateEl = document.getElementById(`availDate-${listingId}`);
-      const startEl = document.getElementById(`availStart-${listingId}`);
-      const endEl = document.getElementById(`availEnd-${listingId}`);
-      const effective_date = dateEl.value;
-      const start_time = startEl.value;
-      const end_time = endEl.value;
-      if (!effective_date || !start_time || !end_time){ showToast('Kumpletuhin ang petsa at oras'); return; }
-      const row = { listing_id: listingId, user_id: state.user.id, effective_date, start_time, end_time };
-      const saved = await upsertListingAvailability(row);
-      if (saved){
-        state.listingAvailability = [...state.listingAvailability.filter(a => a.listing_id !== listingId), saved];
-        showToast('Na-save ang availability');
-        render();
-      }
-    };
-  });
 
   document.querySelectorAll('[data-block-add]').forEach(el => {
     el.onclick = async () => {
@@ -1140,7 +1237,7 @@ document.getElementById('fiestaToggle').onclick = () => {
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.onclick = () => {
     state.tab = btn.dataset.tab;
-    if (btn.dataset.tab === 'list'){ state.editingListing = null; state.formPin = null; }
+    if (btn.dataset.tab === 'list'){ state.editingListing = null; state.formPin = null; state.formCalendarYear = null; state.formCalendarMonthIdx = null; state.formSelectedDate = null; state.formSelectedHours = null; }
     render();
   };
 });
@@ -1238,11 +1335,11 @@ async function init(){
     state.user = session ? mapUser(session.user) : null;
     renderAccountRow();
   });
-  const [listings, bookings, availabilityBlocks, listingAvailability] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingAvailability()]);
+  const [listings, bookings, availabilityBlocks, listingHours] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingHours()]);
   state.listings = listings;
   state.bookings = bookings;
   state.availabilityBlocks = availabilityBlocks;
-  state.listingAvailability = listingAvailability;
+  state.listingHours = listingHours;
   state.loading = false;
   render();
 }
