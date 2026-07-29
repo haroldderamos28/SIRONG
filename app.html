@@ -182,11 +182,14 @@
 </div>
 
 <div class="overlay hidden" id="overlay">
-  <div class="modal">
+  <div class="modal" style="max-height:82vh; overflow-y:auto;">
     <div class="modal-top">
       <p id="modalTitle">Book</p>
       <svg id="modalClose" style="cursor:pointer; color:#7C97A3;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </div>
+    <p class="map-hint">Piliin ang petsa sa kalendaryo para makita ang available na oras.</p>
+    <div id="bookingCalWrap"></div>
+    <div id="bookingHourWrap"></div>
     <div class="field"><input id="bfDate" type="date" /></div>
     <div class="time-row" style="margin-bottom:10px;">
       <input id="bfStart" type="time" />
@@ -467,6 +470,9 @@ let state = {
   formCalendarMonthIdx: null,
   formSelectedDate: null,
   formSelectedHours: null,
+  bookingCalYear: null,
+  bookingCalMonthIdx: null,
+  bookingSelectedDate: null,
   activeFilters: [],
   fiestaMode: false,
   bookingTarget: null,
@@ -548,6 +554,12 @@ function renderSearch(){
         ${l.features.map(fid => `<span class="b-feat">${featureIcon(fid)}${featureLabel(fid)}</span>`).join('')}
       </div>
       ${l.notes ? `<p class="notes">${l.notes}</p>` : ''}
+      ${(() => {
+        const customDates = state.listingHours.filter(h => h.listing_id === l.id).length;
+        return customDates > 0
+          ? `<p class="map-hint" style="margin-bottom:8px;">📅 May customized availability sa ${customDates} na petsa — tingnan sa Book</p>`
+          : `<p class="map-hint" style="margin-bottom:8px;">🕐 Available anumang oras (default)</p>`;
+      })()}
       <button class="btn btn-primary" data-book="${l.id}">${l.instant ? 'Book agad — instant' : 'Send booking request'}</button>
       ${state.user && l.user_id === state.user.id ? `
       <div style="display:flex; gap:16px; margin-top:8px;">
@@ -1167,6 +1179,97 @@ function submitListing(){
   }
 }
 
+function renderBookingCalendarHtml(listingId){
+  if (state.bookingCalYear == null){
+    const now = new Date();
+    state.bookingCalYear = now.getFullYear();
+    state.bookingCalMonthIdx = now.getMonth();
+  }
+  const year = state.bookingCalYear;
+  const monthIdx = state.bookingCalMonthIdx;
+  const monthNames = ['Enero','Pebrero','Marso','Abril','Mayo','Hunyo','Hulyo','Agosto','Setyembre','Oktubre','Nobyembre','Disyembre'];
+  const totalDays = daysInMonth(year, monthIdx);
+  const startWeekday = firstWeekday(year, monthIdx);
+  const setDates = new Set(state.listingHours.filter(h => h.listing_id === listingId).map(h => h.hour_date));
+
+  let cells = '';
+  for (let i=0;i<startWeekday;i++){ cells += `<div></div>`; }
+  for (let d=1; d<=totalDays; d++){
+    const key = dateKey(year, monthIdx, d);
+    const isSelected = state.bookingSelectedDate === key;
+    const hasCustom = setDates.has(key);
+    cells += `<div class="cal-day ${isSelected?'selected':''} ${hasCustom?'has-custom':''}" data-book-cal-date="${key}">${d}</div>`;
+  }
+
+  return `
+    <div class="cal-header">
+      <button type="button" class="cal-nav" id="bookCalPrev">‹</button>
+      <span class="serif" style="font-size:14px; color:var(--sky-deep);">${monthNames[monthIdx]} ${year}</span>
+      <button type="button" class="cal-nav" id="bookCalNext">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-dow">Su</div><div class="cal-dow">Mo</div><div class="cal-dow">Tu</div><div class="cal-dow">We</div><div class="cal-dow">Th</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div>
+      ${cells}
+    </div>
+  `;
+}
+
+function renderBookingHoursHtml(listingId){
+  if (!state.bookingSelectedDate) return `<p class="map-hint" style="margin:8px 0;">Pumili ng petsa sa itaas para makita ang oras.</p>`;
+  const row = state.listingHours.find(h => h.listing_id === listingId && h.hour_date === state.bookingSelectedDate);
+  const hours = row ? row.hours : Array(24).fill(true);
+  const cells = hours.map((open,i) => `<div class="hour-cell ${open?'open':'closed'}">${HOUR_LABELS[i]}</div>`).join('');
+  return `
+    <p class="map-hint" style="margin:8px 0 6px;">Availability para sa ${state.bookingSelectedDate} (berde = bukas):</p>
+    <div class="hour-grid">${cells}</div>
+  `;
+}
+
+function attachBookingCalendarListeners(listingId){
+  document.querySelectorAll('[data-book-cal-date]').forEach(el => {
+    el.onclick = () => {
+      state.bookingSelectedDate = el.dataset.bookCalDate;
+      const dateInput = document.getElementById('bfDate');
+      if (dateInput) dateInput.value = state.bookingSelectedDate;
+      updateBookingCalendarUI();
+    };
+  });
+  const prevBtn = document.getElementById('bookCalPrev');
+  if (prevBtn) prevBtn.onclick = () => {
+    state.bookingCalMonthIdx--;
+    if (state.bookingCalMonthIdx < 0){ state.bookingCalMonthIdx = 11; state.bookingCalYear--; }
+    updateBookingCalendarUI();
+  };
+  const nextBtn = document.getElementById('bookCalNext');
+  if (nextBtn) nextBtn.onclick = () => {
+    state.bookingCalMonthIdx++;
+    if (state.bookingCalMonthIdx > 11){ state.bookingCalMonthIdx = 0; state.bookingCalYear++; }
+    updateBookingCalendarUI();
+  };
+}
+
+function updateBookingCalendarUI(){
+  if (!state.bookingTarget) return;
+  const listingId = state.bookingTarget.id;
+  const calWrap = document.getElementById('bookingCalWrap');
+  const hourWrap = document.getElementById('bookingHourWrap');
+  if (calWrap) calWrap.innerHTML = renderBookingCalendarHtml(listingId);
+  if (hourWrap) hourWrap.innerHTML = renderBookingHoursHtml(listingId);
+  attachBookingCalendarListeners(listingId);
+}
+
+function isRangeAvailable(listingId, date, startTime, endTime){
+  const row = state.listingHours.find(h => h.listing_id === listingId && h.hour_date === date);
+  if (!row) return true;
+  const startHour = Number(startTime.split(':')[0]);
+  let endHour = Number(endTime.split(':')[0]);
+  if (endHour <= startHour) endHour = startHour + 1;
+  for (let h = startHour; h < endHour; h++){
+    if (!row.hours[h]) return false;
+  }
+  return true;
+}
+
 function openBooking(listingId){
   state.bookingTarget = state.listings.find(l => l.id === listingId);
   document.getElementById('modalTitle').textContent = 'Book ' + state.bookingTarget.address;
@@ -1174,6 +1277,10 @@ function openBooking(listingId){
   document.getElementById('bfStart').value = '';
   document.getElementById('bfEnd').value = '';
   document.getElementById('bfPay').textContent = 'Payment: ' + (state.bookingTarget.payment || 'GCash');
+  state.bookingCalYear = null;
+  state.bookingCalMonthIdx = null;
+  state.bookingSelectedDate = null;
+  updateBookingCalendarUI();
   document.getElementById('overlay').classList.remove('hidden');
 }
 
@@ -1213,6 +1320,10 @@ document.getElementById('bfConfirm').onclick = async () => {
   const start = document.getElementById('bfStart').value;
   const end = document.getElementById('bfEnd').value;
   if (!date || !start || !end) { showToast('Kumpletuhin ang lahat ng field'); return; }
+  if (!isRangeAvailable(state.bookingTarget.id, date, start, end)){
+    showToast('Naka-close ang space sa oras na iyon, pumili ng ibang oras.');
+    return;
+  }
   const hours = Math.max(1, Number(end.split(':')[0]) - Number(start.split(':')[0]));
   const booking = {
     id: uid(), listingId: state.bookingTarget.id, address: state.bookingTarget.address,
