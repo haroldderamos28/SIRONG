@@ -431,11 +431,24 @@ async function deleteAvailabilityBlockRow(id){
   return true;
 }
 
+async function fetchListingAvailability(){
+  const { data, error } = await sb.from('listing_availability').select('*');
+  if (error){ console.error(error); return []; }
+  return data;
+}
+
+async function upsertListingAvailability(row){
+  const { data, error } = await sb.from('listing_availability').upsert(row, { onConflict: 'listing_id' }).select();
+  if (error){ console.error(error); showToast('Hindi na-save ang availability, subukan ulit'); return null; }
+  return data[0];
+}
+
 let state = {
   tab: 'search',
   listings: [],
   bookings: [],
   availabilityBlocks: [],
+  listingAvailability: [],
   activeFilters: [],
   fiestaMode: false,
   bookingTarget: null,
@@ -662,6 +675,7 @@ function renderMySpaces(){
     const listingBookings = state.bookings.filter(b => b.listingId === l.id);
     const earnings = listingBookings.reduce((sum, b) => sum + (Number(b.total) || 0), 0);
     const blocks = state.availabilityBlocks.filter(bl => bl.listing_id === l.id);
+    const avail = state.listingAvailability.find(a => a.listing_id === l.id);
     const photos = (l.photos && l.photos.length) ? l.photos : (l.photo ? [l.photo] : []);
 
     return `
@@ -679,6 +693,17 @@ function renderMySpaces(){
       <div style="display:flex; gap:16px; margin:8px 0;">
         <button class="report-link" data-edit-listing="${l.id}">Edit details</button>
         <button class="report-link" data-delete-listing="${l.id}" style="color:#A8362A;">Delete</button>
+      </div>
+
+      <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
+        <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">Available na oras (magsisimula sa petsang ito)</p>
+        ${avail ? `<p class="map-hint" style="margin-bottom:8px;">Kasalukuyan: simula ${avail.effective_date}, ${avail.start_time}–${avail.end_time} araw-araw.</p>` : `<p class="map-hint" style="margin-bottom:8px;">Wala pang na-set, available by default anumang oras.</p>`}
+        <div class="field"><input type="date" id="availDate-${l.id}" value="${avail ? avail.effective_date : ''}" /></div>
+        <div class="time-row" style="margin-bottom:8px;">
+          <input type="time" id="availStart-${l.id}" value="${avail ? avail.start_time : ''}" />
+          <input type="time" id="availEnd-${l.id}" value="${avail ? avail.end_time : ''}" />
+        </div>
+        <button class="btn btn-ghost" data-save-availability="${l.id}" style="width:auto; padding:8px 14px;">I-save ang availability</button>
       </div>
 
       <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
@@ -897,6 +922,26 @@ function attachContentListeners(){
     state.tab = 'list';
     render();
   };
+
+  document.querySelectorAll('[data-save-availability]').forEach(el => {
+    el.onclick = async () => {
+      const listingId = el.dataset.saveAvailability;
+      const dateEl = document.getElementById(`availDate-${listingId}`);
+      const startEl = document.getElementById(`availStart-${listingId}`);
+      const endEl = document.getElementById(`availEnd-${listingId}`);
+      const effective_date = dateEl.value;
+      const start_time = startEl.value;
+      const end_time = endEl.value;
+      if (!effective_date || !start_time || !end_time){ showToast('Kumpletuhin ang petsa at oras'); return; }
+      const row = { listing_id: listingId, user_id: state.user.id, effective_date, start_time, end_time };
+      const saved = await upsertListingAvailability(row);
+      if (saved){
+        state.listingAvailability = [...state.listingAvailability.filter(a => a.listing_id !== listingId), saved];
+        showToast('Na-save ang availability');
+        render();
+      }
+    };
+  });
 
   document.querySelectorAll('[data-block-add]').forEach(el => {
     el.onclick = async () => {
@@ -1193,10 +1238,11 @@ async function init(){
     state.user = session ? mapUser(session.user) : null;
     renderAccountRow();
   });
-  const [listings, bookings, availabilityBlocks] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks()]);
+  const [listings, bookings, availabilityBlocks, listingAvailability] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingAvailability()]);
   state.listings = listings;
   state.bookings = bookings;
   state.availabilityBlocks = availabilityBlocks;
+  state.listingAvailability = listingAvailability;
   state.loading = false;
   render();
 }
