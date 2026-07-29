@@ -139,6 +139,13 @@
   .hour-cell{font-size:11px; text-align:center; padding:7px 2px; border-radius:6px; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--muted); user-select:none;}
   .hour-cell.open{background:var(--green); color:var(--green-deep); border-color:var(--green); font-weight:600;}
   .hour-cell.closed{background:#EFF1F2; color:#9AA5A9;}
+  .chat-msg{max-width:78%; padding:8px 12px; border-radius:12px; font-size:13px; word-wrap:break-word; margin-bottom:2px;}
+  .chat-msg.mine{align-self:flex-end; background:var(--sky); color:#fff; border-bottom-right-radius:3px;}
+  .chat-msg.theirs{align-self:flex-start; background:#fff; border:1px solid var(--line); color:var(--ink); border-bottom-left-radius:3px;}
+  .chat-msg img{max-width:100%; border-radius:8px; margin-top:4px; display:block;}
+  .chat-msg-time{font-size:9px; opacity:0.7; margin-top:3px;}
+  .chat-input-row{display:flex; gap:6px; align-items:center;}
+  .chat-photo-btn{background:var(--cream); border:1px solid var(--line); border-radius:8px; width:38px; height:38px; cursor:pointer; font-size:15px; flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -281,10 +288,27 @@
 <div class="overlay hidden" id="ownerProfileOverlay">
   <div class="modal" style="max-height:82vh; overflow-y:auto;">
     <div class="modal-top">
-      <p>Profile ng May-ari</p>
+      <p id="ownerProfileTitle">Lot Owner Profile</p>
       <svg id="ownerProfileClose" style="cursor:pointer; color:#7C97A3;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </div>
     <div id="ownerProfileContent"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="chatOverlay">
+  <div class="modal" style="max-height:82vh; display:flex; flex-direction:column;">
+    <div class="modal-top">
+      <p id="chatTitle">Chat</p>
+      <svg id="chatClose" style="cursor:pointer; color:#7C97A3;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </div>
+    <div id="chatMessagesWrap" style="flex:1; overflow-y:auto; max-height:320px; min-height:120px; margin-bottom:10px; display:flex; flex-direction:column; gap:6px; padding-right:2px;"></div>
+    <div id="chatPhotoPreview"></div>
+    <div class="chat-input-row">
+      <input type="file" id="chatPhotoInput" accept="image/*" style="display:none;" />
+      <button type="button" class="chat-photo-btn" id="chatPhotoBtn">📷</button>
+      <input id="chatTextInput" placeholder="Type a message..." style="flex:1; padding:9px 10px; border-radius:7px; border:1px solid var(--line); font-family:'Inter',sans-serif; font-size:13px;" />
+      <button type="button" class="btn btn-primary" id="chatSendBtn" style="width:auto; padding:9px 16px;">Send</button>
+    </div>
   </div>
 </div>
 
@@ -487,6 +511,9 @@ const TRANSLATIONS = {
     error_block_generic: "Couldn't block, please try again", error_remove_generic: "Couldn't remove, please try again",
     error_save_hours: "Couldn't save hours, please try again", error_save_profile: "Couldn't save profile, please try again",
     error_submit_generic: "Couldn't submit, please try again", removed_label: 'Removed', cancelled_label: 'Cancelled',
+    message_btn: '💬 Message', chat_with_prefix: 'Chat with',
+    type_message_placeholder: 'Type a message...', send_btn: 'Send',
+    error_send_message: "Couldn't send, please try again",
   },
   tl: {
     feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
@@ -603,6 +630,9 @@ const TRANSLATIONS = {
     error_block_generic: 'Hindi na-block, subukan ulit', error_remove_generic: 'Hindi ma-alis, subukan ulit',
     error_save_hours: 'Hindi na-save ang oras, subukan ulit', error_save_profile: 'Hindi na-save ang profile, subukan ulit',
     error_submit_generic: 'Hindi na-submit, subukan ulit', removed_label: 'Naalis na', cancelled_label: 'Nakansela na',
+    message_btn: '💬 Message', chat_with_prefix: 'Chat kasama si',
+    type_message_placeholder: 'Mag-type ng mensahe...', send_btn: 'Ipadala',
+    error_send_message: 'Hindi maipadala, subukan ulit',
   },
 };
 
@@ -720,6 +750,18 @@ async function upsertListingHours(row){
   return data[0];
 }
 
+async function fetchMessages(bookingId){
+  const { data, error } = await sb.from('messages').select('*').eq('booking_id', bookingId).order('created_at', { ascending: true });
+  if (error){ console.error(error); return []; }
+  return data;
+}
+
+async function insertMessage(row){
+  const { data, error } = await sb.from('messages').insert(row).select();
+  if (error){ console.error(error); showToast(t('error_send_message')); return null; }
+  return data[0];
+}
+
 let state = {
   lang: 'en',
   tab: 'search',
@@ -735,6 +777,10 @@ let state = {
   bookingCalMonthIdx: null,
   bookingSelectedDate: null,
   profiles: [],
+  chatBookingId: null,
+  chatMessages: [],
+  chatChannel: null,
+  chatOtherPartyName: '',
   activeFilters: [],
   fiestaMode: false,
   bookingTarget: null,
@@ -1082,9 +1128,9 @@ function renderMySpaces(){
       <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
         <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">${t('bookings_label')}</p>
         ${listingBookings.length ? listingBookings.map(b => `
-          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink); padding:4px 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink); padding:4px 0;">
             <span>${b.renter} · ${b.date} ${b.start}–${b.end}</span>
-            <span>₱${b.total}</span>
+            <span style="display:flex; align-items:center; gap:8px;">₱${b.total}<button class="report-link" data-chat-booking="${b.id}" data-chat-other="${b.renter}" style="margin:0;">${t('message_btn')}</button></span>
           </div>`).join('') : `<p class="map-hint">${t('no_bookings_yet_owner')}</p>`}
       </div>
     </div>`;
@@ -1114,6 +1160,7 @@ function renderBookings(){
           </span>
         </div>
         <button class="report-link" data-report="${b.id}">${t('report_link')}</button>
+        <button class="report-link" data-chat-booking="${b.id}" data-chat-other="${(state.listings.find(l=>l.id===b.listingId)||{}).owner || 'Owner'}">${t('message_btn')}</button>
       </div>
       <div class="ticket-divider"></div>
       <div class="ticket-side">
@@ -1191,6 +1238,10 @@ function attachContentListeners(){
 
   document.querySelectorAll('[data-view-owner]').forEach(el => {
     el.onclick = () => openOwnerProfile(el.dataset.viewOwner);
+  });
+
+  document.querySelectorAll('[data-chat-booking]').forEach(el => {
+    el.onclick = () => openChat(el.dataset.chatBooking, el.dataset.chatOther);
   });
 
   const saveProfileBtn = document.getElementById('saveProfileBtn');
@@ -1710,12 +1761,99 @@ function renderOwnerProfileHtml(ownerId){
 }
 
 function openOwnerProfile(ownerId){
+  document.getElementById('ownerProfileTitle').textContent = t('owner_profile_title');
   document.getElementById('ownerProfileContent').innerHTML = renderOwnerProfileHtml(ownerId);
   document.getElementById('ownerProfileOverlay').classList.remove('hidden');
 }
 
 document.getElementById('ownerProfileClose').onclick = () => {
   document.getElementById('ownerProfileOverlay').classList.add('hidden');
+};
+
+function renderChatMessages(){
+  const wrap = document.getElementById('chatMessagesWrap');
+  if (!wrap) return;
+  wrap.innerHTML = state.chatMessages.map(m => {
+    const mine = state.user && m.sender_id === state.user.id;
+    const time = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    return `<div class="chat-msg ${mine ? 'mine' : 'theirs'}">
+      ${m.message ? `<div>${m.message}</div>` : ''}
+      ${m.photo ? `<img src="${m.photo}" />` : ''}
+      <div class="chat-msg-time">${time}</div>
+    </div>`;
+  }).join('');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function openChat(bookingId, otherName){
+  state.chatBookingId = bookingId;
+  state.chatOtherPartyName = otherName;
+  document.getElementById('chatTitle').textContent = t('chat_with_prefix') + ' ' + otherName;
+  document.getElementById('chatTextInput').placeholder = t('type_message_placeholder');
+  document.getElementById('chatSendBtn').textContent = t('send_btn');
+  document.getElementById('chatTextInput').value = '';
+  document.getElementById('chatPhotoInput').value = '';
+  document.getElementById('chatPhotoPreview').innerHTML = '';
+  state.chatMessages = await fetchMessages(bookingId);
+  renderChatMessages();
+  document.getElementById('chatOverlay').classList.remove('hidden');
+
+  if (state.chatChannel){ sb.removeChannel(state.chatChannel); }
+  state.chatChannel = sb.channel('messages-' + bookingId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` }, (payload) => {
+      if (!state.chatMessages.find(m => m.id === payload.new.id)){
+        state.chatMessages = [...state.chatMessages, payload.new];
+        renderChatMessages();
+      }
+    })
+    .subscribe();
+}
+
+function closeChat(){
+  document.getElementById('chatOverlay').classList.add('hidden');
+  if (state.chatChannel){ sb.removeChannel(state.chatChannel); state.chatChannel = null; }
+  state.chatBookingId = null;
+}
+
+document.getElementById('chatClose').onclick = closeChat;
+
+document.getElementById('chatPhotoBtn').onclick = () => document.getElementById('chatPhotoInput').click();
+
+document.getElementById('chatPhotoInput').onchange = () => {
+  const file = document.getElementById('chatPhotoInput').files[0];
+  const preview = document.getElementById('chatPhotoPreview');
+  if (file){
+    const reader = new FileReader();
+    reader.onload = (e) => { preview.innerHTML = `<img src="${e.target.result}" style="max-width:70px; border-radius:6px; margin-bottom:6px; display:block;" />`; };
+    reader.readAsDataURL(file);
+  } else {
+    preview.innerHTML = '';
+  }
+};
+
+document.getElementById('chatSendBtn').onclick = async () => {
+  if (!state.user || !state.chatBookingId) return;
+  const textEl = document.getElementById('chatTextInput');
+  const text = textEl.value.trim();
+  const photoInput = document.getElementById('chatPhotoInput');
+  const photoFile = photoInput.files && photoInput.files[0];
+  let photoDataUrl = null;
+  if (photoFile){
+    photoDataUrl = await resizeImage(photoFile, 1000);
+  }
+  if (!text && !photoDataUrl) return;
+
+  const row = { id: uid(), booking_id: state.chatBookingId, sender_id: state.user.id, message: text || null, photo: photoDataUrl };
+  const saved = await insertMessage(row);
+  if (saved){
+    textEl.value = '';
+    photoInput.value = '';
+    document.getElementById('chatPhotoPreview').innerHTML = '';
+    if (!state.chatMessages.find(m => m.id === saved.id)){
+      state.chatMessages = [...state.chatMessages, saved];
+      renderChatMessages();
+    }
+  }
 };
 
 document.getElementById('lightboxClose').onclick = () => {
