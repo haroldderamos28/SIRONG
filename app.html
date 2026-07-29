@@ -12,11 +12,12 @@
   :root{
     --sky:#5AACD6; --sky-deep:#2E6E8E; --green:#8FE0AC; --green-deep:#1F6B44;
     --gold:#D89A3E; --cream:#F0F8FB; --muted:#7C97A3; --line:#D6E9F0;
+    --app-height: 100vh;
   }
   *{box-sizing:border-box;}
   html, body{height:100%;}
   body{margin:0; background:#DCEEF5; font-family:'Inter',sans-serif; display:flex; justify-content:center; padding:24px 12px; box-sizing:border-box;}
-  .app{background:var(--cream); width:100%; max-width:420px; height:calc(100vh - 48px); max-height:860px; display:flex; flex-direction:column; border-radius:16px; overflow:hidden; border:1px solid var(--line); box-shadow:0 12px 30px rgba(46,110,142,0.15);}
+  .app{background:var(--cream); width:100%; max-width:420px; height:calc(var(--app-height) - 48px); max-height:860px; display:flex; flex-direction:column; border-radius:16px; overflow:hidden; border:1px solid var(--line); box-shadow:0 12px 30px rgba(46,110,142,0.15);}
   .header{background:var(--sky); padding:14px 16px; flex-shrink:0;}
   .brand{display:flex; align-items:center; gap:8px;}
   .badge{width:26px; height:26px; border-radius:6px; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:16px; color:var(--sky-deep);}
@@ -150,6 +151,14 @@
   .nav button{position:relative;}
   .nav-dot{position:absolute; top:6px; right:28%; width:8px; height:8px; border-radius:50%; background:#E4483B; display:none;}
 </style>
+<script>
+  function __setAppHeight(){
+    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+  }
+  __setAppHeight();
+  window.addEventListener('resize', __setAppHeight);
+  window.addEventListener('orientationchange', __setAppHeight);
+</script>
 </head>
 <body>
 <div class="app">
