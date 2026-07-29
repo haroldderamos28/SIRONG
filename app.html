@@ -148,6 +148,14 @@
   .chat-msg-time{font-size:11px; opacity:0.7; margin-top:3px;}
   .chat-input-row{display:flex; gap:6px; align-items:center;}
   .chat-photo-btn{background:var(--cream); border:1px solid var(--line); border-radius:8px; width:38px; height:38px; cursor:pointer; font-size:17px; flex-shrink:0;}
+  .status-badge{font-size:13px; font-weight:600; padding:2px 8px; border-radius:20px; display:inline-block;}
+  .status-badge.pending{background:#FCEBD2; color:#9A6A1E;}
+  .status-badge.confirmed{background:var(--green); color:var(--green-deep);}
+  .status-badge.declined{background:#F6D9D6; color:#A8362A;}
+  .accept-decline-row{display:flex; gap:8px; margin-top:6px;}
+  .accept-decline-row button{font-size:14px; padding:6px 12px; border-radius:6px; border:none; cursor:pointer; font-weight:600;}
+  .btn-accept{background:var(--green); color:var(--green-deep);}
+  .btn-decline{background:#F6D9D6; color:#A8362A;}
   .nav button{position:relative;}
   .nav-dot{position:absolute; top:6px; right:28%; width:8px; height:8px; border-radius:50%; background:#E4483B; display:none;}
 </style>
@@ -353,6 +361,7 @@ async function signOutUser(){
   state.profile = null;
   state.unreadBookings = new Set();
   if (globalMessageChannel){ sb.removeChannel(globalMessageChannel); globalMessageChannel = null; }
+  if (globalBookingChannel){ sb.removeChannel(globalBookingChannel); globalBookingChannel = null; }
   render();
 }
 
@@ -533,6 +542,11 @@ const TRANSLATIONS = {
     new_message_from: 'New message from',
     your_own_listing: 'This is your listing',
     cannot_book_own_listing: "You can't book your own listing.",
+    status_pending: 'Pending approval', status_confirmed: 'Confirmed', status_declined: 'Declined',
+    accept_btn: 'Accept', decline_btn: 'Decline',
+    booking_accepted_toast: 'Your booking was accepted!',
+    booking_declined_toast: 'Your booking was declined.',
+    error_status_update: "Couldn't update booking status, please try again",
   },
   tl: {
     feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
@@ -655,6 +669,11 @@ const TRANSLATIONS = {
     new_message_from: 'Bagong mensahe mula kay',
     your_own_listing: 'Ito ang listing mo',
     cannot_book_own_listing: 'Hindi mo pwedeng i-book ang sarili mong listing.',
+    status_pending: 'Hinihintay ang approval', status_confirmed: 'Confirmed na', status_declined: 'Tinanggihan',
+    accept_btn: 'Tanggapin', decline_btn: 'Tanggihan',
+    booking_accepted_toast: 'Na-accept na ang booking mo!',
+    booking_declined_toast: 'Na-decline ang booking mo.',
+    error_status_update: 'Hindi na-update ang status, subukan ulit',
   },
 };
 
@@ -688,10 +707,10 @@ function resizeImage(file, maxWidth){
 }
 
 function rowToBooking(r){
-  return { id: r.id, listingId: r.listing_id, address: r.address, renter: r.renter, date: r.booking_date, start: r.start_time, end: r.end_time, total: r.total, instant: r.instant, rating: r.rating, userId: r.user_id };
+  return { id: r.id, listingId: r.listing_id, address: r.address, renter: r.renter, date: r.booking_date, start: r.start_time, end: r.end_time, total: r.total, instant: r.instant, rating: r.rating, userId: r.user_id, status: r.status || 'confirmed' };
 }
 function bookingToRow(b){
-  return { id: b.id, listing_id: b.listingId, address: b.address, renter: b.renter, booking_date: b.date, start_time: b.start, end_time: b.end, total: b.total, instant: b.instant, rating: b.rating ?? null, user_id: b.userId };
+  return { id: b.id, listing_id: b.listingId, address: b.address, renter: b.renter, booking_date: b.date, start_time: b.start, end_time: b.end, total: b.total, instant: b.instant, rating: b.rating ?? null, user_id: b.userId, status: b.status || 'confirmed' };
 }
 
 async function fetchListings(){
@@ -734,6 +753,12 @@ async function deleteBookingRow(id){
   const { error } = await sb.from('bookings').delete().eq('id', id);
   if (error){ console.error(error); showToast(t('error_cancel_generic')); return false; }
   return true;
+}
+
+async function updateBookingStatus(id, status){
+  const { data, error } = await sb.from('bookings').update({ status }).eq('id', id).select();
+  if (error){ console.error(error); showToast(t('error_update_generic')); return null; }
+  return data && data[0] ? rowToBooking(data[0]) : null;
 }
 
 async function updateBookingRating(id, rating){
@@ -1153,9 +1178,19 @@ function renderMySpaces(){
       <div style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px;">
         <p style="font-size:12px; font-weight:600; color:var(--sky-deep); margin-bottom:6px;">${t('bookings_label')}</p>
         ${listingBookings.length ? listingBookings.map(b => `
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink); padding:4px 0;">
-            <span>${b.renter} · ${b.date} ${b.start}–${b.end}</span>
-            <span style="display:flex; align-items:center; gap:8px;">₱${b.total}<button class="report-link" data-chat-booking="${b.id}" data-chat-other="${b.renter}" style="margin:0;">${t('message_btn')}</button></span>
+          <div style="padding:6px 0; border-bottom:1px solid var(--line);">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink);">
+              <span>${b.renter} · ${b.date} ${b.start}–${b.end}</span>
+              <span style="display:flex; align-items:center; gap:8px;">₱${b.total}<button class="report-link" data-chat-booking="${b.id}" data-chat-other="${b.renter}" style="margin:0;">${t('message_btn')}</button></span>
+            </div>
+            <div style="margin-top:4px; display:flex; align-items:center; justify-content:space-between;">
+              <span class="status-badge ${b.status}">${t('status_' + b.status)}</span>
+              ${b.status === 'pending' ? `
+                <div class="accept-decline-row" style="margin-top:0;">
+                  <button type="button" class="btn-accept" data-accept-booking="${b.id}">${t('accept_btn')}</button>
+                  <button type="button" class="btn-decline" data-decline-booking="${b.id}">${t('decline_btn')}</button>
+                </div>` : ''}
+            </div>
           </div>`).join('') : `<p class="map-hint">${t('no_bookings_yet_owner')}</p>`}
       </div>
     </div>`;
@@ -1178,6 +1213,7 @@ function renderBookings(){
         <p class="ticket-eyebrow">Booking</p>
         <p class="ticket-addr">${b.address}</p>
         <p class="ticket-time">${b.date} · ${b.start}–${b.end}</p>
+        <span class="status-badge ${b.status}" style="margin-top:4px;">${t('status_' + b.status)}</span>
         <div class="rating-row">
           <span class="rating-label">${t('rate_this_spot')}</span>
           <span class="stars" data-rate="${b.id}">
@@ -1268,6 +1304,28 @@ function attachContentListeners(){
 
   document.querySelectorAll('[data-chat-booking]').forEach(el => {
     el.onclick = () => openChat(el.dataset.chatBooking, el.dataset.chatOther);
+  });
+
+  document.querySelectorAll('[data-accept-booking]').forEach(el => {
+    el.onclick = async () => {
+      const updated = await updateBookingStatus(el.dataset.acceptBooking, 'confirmed');
+      if (updated){
+        state.bookings = state.bookings.map(b => b.id === updated.id ? updated : b);
+        showToast(t('status_confirmed'));
+        render();
+      }
+    };
+  });
+
+  document.querySelectorAll('[data-decline-booking]').forEach(el => {
+    el.onclick = async () => {
+      const updated = await updateBookingStatus(el.dataset.declineBooking, 'declined');
+      if (updated){
+        state.bookings = state.bookings.map(b => b.id === updated.id ? updated : b);
+        showToast(t('status_declined'));
+        render();
+      }
+    };
   });
 
   const saveProfileBtn = document.getElementById('saveProfileBtn');
@@ -1885,6 +1943,29 @@ function handleIncomingMessage(msg){
   updateNavDots();
 }
 
+let globalBookingChannel = null;
+function setupGlobalBookingSubscription(){
+  if (globalBookingChannel){ sb.removeChannel(globalBookingChannel); globalBookingChannel = null; }
+  if (!state.user) return;
+  globalBookingChannel = sb.channel('global-bookings-' + state.user.id)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings' }, (payload) => {
+      handleBookingStatusChange(payload.new);
+    })
+    .subscribe();
+}
+
+function handleBookingStatusChange(updatedRow){
+  const updated = rowToBooking(updatedRow);
+  const existing = state.bookings.find(b => b.id === updated.id);
+  state.bookings = state.bookings.map(b => b.id === updated.id ? updated : b);
+
+  if (state.user && updated.userId === state.user.id && existing && existing.status !== updated.status){
+    if (updated.status === 'confirmed') showToast(t('booking_accepted_toast'));
+    else if (updated.status === 'declined') showToast(t('booking_declined_toast'));
+    render();
+  }
+}
+
 function closeChat(){
   document.getElementById('chatOverlay').classList.add('hidden');
   if (state.chatChannel){ sb.removeChannel(state.chatChannel); state.chatChannel = null; }
@@ -1953,7 +2034,7 @@ document.getElementById('bfConfirm').onclick = async () => {
   const booking = {
     id: uid(), listingId: state.bookingTarget.id, address: state.bookingTarget.address,
     renter: name, date, start, end, total: hours * state.bookingTarget.price, instant: state.bookingTarget.instant,
-    userId: state.user.id,
+    userId: state.user.id, status: state.bookingTarget.instant ? 'confirmed' : 'pending',
   };
   const saved = await insertBooking(booking);
   if (saved){
@@ -2070,9 +2151,11 @@ async function init(){
   const { data: sessionData } = await sb.auth.getSession();
   state.user = sessionData && sessionData.session ? mapUser(sessionData.session.user) : null;
   setupGlobalMessageSubscription();
+  setupGlobalBookingSubscription();
   sb.auth.onAuthStateChange((_event, session) => {
     state.user = session ? mapUser(session.user) : null;
     setupGlobalMessageSubscription();
+    setupGlobalBookingSubscription();
     renderAccountRow();
   });
   const [listings, bookings, availabilityBlocks, listingHours, profiles] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingHours(), fetchAllProfiles()]);
