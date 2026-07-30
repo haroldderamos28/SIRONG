@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "sirong.app",
+        "sha256_cert_fingerprints": ["A5:6F:4F:6A:28:34:2F:9C:7C:95:43:64:61:A3:3F:4D:9E:50:D8:43:A0:92:8B:6F:0D:63:99:61:FA:90:88:3F"]
+      }
+    }]
