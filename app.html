@@ -61,7 +61,7 @@
   .nav button.active{color:var(--green-deep);}
   .nav button span{font-size:14px;}
   .nav button.active span{font-weight:600;}
-  .overlay{position:fixed; inset:0; background:rgba(46,110,142,0.45); display:flex; align-items:flex-end; justify-content:center; padding:20px 12px; z-index:50;}
+  .overlay{position:fixed; inset:0; background:rgba(46,110,142,0.45); display:flex; align-items:flex-end; justify-content:center; padding:20px 12px; z-index:9999;}
   .overlay.hidden{display:none;}
   .modal{background:#fff; border-radius:12px; padding:16px; width:100%; max-width:420px;}
   .modal-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
@@ -71,7 +71,7 @@
   .pay-note{font-size:14px; color:var(--muted); margin:0;}
   .safety-note{font-size:14px; color:#9A6A1E; background:#FCEBD2; border-radius:8px; padding:8px 10px; margin:8px 0 0;}
 
-  .map-box{width:100%; height:180px; border-radius:10px; border:1px solid var(--line); margin-bottom:8px; overflow:hidden;}
+  .map-box{width:100%; height:180px; border-radius:10px; border:1px solid var(--line); margin-bottom:8px; overflow:hidden; position:relative; z-index:1;}
   .map-hint{font-size:14px; color:var(--muted); margin:0 0 10px;}
   .loc-btn{width:100%; padding:9px 10px; border-radius:7px; border:1px solid var(--line); background:#fff; color:var(--sky-deep); font-size:15px; font-weight:600; cursor:pointer; margin-bottom:8px;}
   .leaflet-popup-content{font-family:'Inter',sans-serif; font-size:15px;}
