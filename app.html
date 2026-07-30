@@ -362,6 +362,7 @@ async function signOutUser(){
   state.unreadBookings = new Set();
   if (globalMessageChannel){ sb.removeChannel(globalMessageChannel); globalMessageChannel = null; }
   if (globalBookingChannel){ sb.removeChannel(globalBookingChannel); globalBookingChannel = null; }
+  if (globalNotificationChannel){ sb.removeChannel(globalNotificationChannel); globalNotificationChannel = null; }
   render();
 }
 
@@ -602,6 +603,7 @@ const TRANSLATIONS = {
     notifications_denied_toast: 'Notifications were blocked. You can enable them in your browser settings.',
     notifications_not_supported: "Your browser doesn't support notifications",
     unread_badge: 'New message',
+    owner_fallback_label: 'Owner',
   },
   tl: {
     feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
@@ -734,6 +736,7 @@ const TRANSLATIONS = {
     notifications_denied_toast: 'Na-block ang notifications. Puwede mo itong i-enable sa browser settings.',
     notifications_not_supported: 'Hindi supported ng browser mo ang notifications',
     unread_badge: 'Bagong mensahe',
+    owner_fallback_label: 'May-ari',
   },
 };
 
@@ -1880,7 +1883,7 @@ function renderOwnerProfileHtml(ownerId){
   const ownerListingIds = new Set(ownerListings.map(l => l.id));
   const ratedBookings = state.bookings.filter(b => ownerListingIds.has(b.listingId) && b.rating);
   const avgRating = ratedBookings.length ? (ratedBookings.reduce((s,b) => s + Number(b.rating), 0) / ratedBookings.length) : null;
-  const displayName = (profile && profile.display_name) || (ownerListings[0] ? ownerListings[0].owner : 'May-ari');
+  const displayName = (profile && profile.display_name) || (ownerListings[0] ? ownerListings[0].owner : t('owner_fallback_label'));
   const verified = profile && profile.verified;
   const bio = profile && profile.bio ? profile.bio : '';
   const specialReq = profile && profile.special_requests ? profile.special_requests : '';
@@ -2028,6 +2031,33 @@ function handleBookingStatusChange(updatedRow){
   if (state.user && updated.userId === state.user.id && existing && existing.status !== updated.status){
     if (updated.status === 'confirmed') showToast(t('booking_accepted_toast'));
     else if (updated.status === 'declined') showToast(t('booking_declined_toast'));
+    render();
+  }
+}
+
+let globalNotificationChannel = null;
+function setupGlobalNotificationSubscription(){
+  if (globalNotificationChannel){ sb.removeChannel(globalNotificationChannel); globalNotificationChannel = null; }
+  if (!state.user) return;
+  globalNotificationChannel = sb.channel('global-notifications-' + state.user.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${state.user.id}` }, (payload) => {
+      handleIncomingNotification(payload.new);
+    })
+    .subscribe();
+}
+
+function handleIncomingNotification(n){
+  if (!state.user) return;
+  if (n.type === 'message' && state.chatBookingId === n.booking_id) return;
+
+  const label = n.title ? (n.body ? `${n.title}: ${n.body}` : n.title) : t('new_message_from');
+  showToast(label);
+
+  if (n.booking_id){
+    state.unreadBookings.add(n.booking_id);
+  }
+  updateNavDots();
+  if (state.tab === 'bookings' || state.tab === 'myspaces'){
     render();
   }
 }
@@ -2218,10 +2248,12 @@ async function init(){
   state.user = sessionData && sessionData.session ? mapUser(sessionData.session.user) : null;
   setupGlobalMessageSubscription();
   setupGlobalBookingSubscription();
+  setupGlobalNotificationSubscription();
   sb.auth.onAuthStateChange((_event, session) => {
     state.user = session ? mapUser(session.user) : null;
     setupGlobalMessageSubscription();
     setupGlobalBookingSubscription();
+    setupGlobalNotificationSubscription();
     renderAccountRow();
   });
   const [listings, bookings, availabilityBlocks, listingHours, profiles] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingHours(), fetchAllProfiles()]);
