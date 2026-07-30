@@ -523,6 +523,10 @@ const SEED_LISTINGS = [
 
 const NAGA_CENTER = [13.6218, 123.1948];
 
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiaGFyb2xkMjgxOTg2IiwiYSI6ImNtczdnbHJqaTAzOXQyeW9meGZmNDNsM3oifQ._BPTF9l4tYEvluQyT6EcFA';
+const MAPBOX_TILE_URL = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`;
+const MAPBOX_TILE_OPTIONS = { attribution: '© Mapbox © OpenStreetMap', tileSize: 512, zoomOffset: -1, maxZoom: 20 };
+
 const MONTH_NAMES = {
   en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
   tl: ['Enero','Pebrero','Marso','Abril','Mayo','Hunyo','Hulyo','Agosto','Setyembre','Oktubre','Nobyembre','Disyembre'],
@@ -1123,7 +1127,7 @@ function initSearchMap(){
   if (searchMapInstance){ searchMapInstance.remove(); searchMapInstance = null; }
   const center = state.userLocation ? [state.userLocation.lat, state.userLocation.lng] : NAGA_CENTER;
   searchMapInstance = L.map('searchMap', { zoomControl: false }).setView(center, 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(searchMapInstance);
+  L.tileLayer(MAPBOX_TILE_URL, MAPBOX_TILE_OPTIONS).addTo(searchMapInstance);
   searchMarkersLayer = L.layerGroup().addTo(searchMapInstance);
   searchCenteredOnUserLocation = !!state.userLocation;
   updateSearchMapMarkers();
@@ -1281,7 +1285,7 @@ function initFormMap(){
   if (formMapInstance){ formMapInstance.remove(); formMapInstance = null; formMarker = null; }
   const start = state.formPin ? [state.formPin.lat, state.formPin.lng] : NAGA_CENTER;
   formMapInstance = L.map('formMap', { zoomControl: false }).setView(start, 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(formMapInstance);
+  L.tileLayer(MAPBOX_TILE_URL, MAPBOX_TILE_OPTIONS).addTo(formMapInstance);
 
   if (state.formPin){
     formMarker = L.marker(start, { draggable: true }).addTo(formMapInstance);
