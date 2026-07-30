@@ -24,6 +24,7 @@
   .navbrand{display:flex; align-items:center; gap:8px; font-family:'Fraunces',serif; font-size:18px; color:var(--sky-deep); font-weight:600;}
   .navbadge{width:26px; height:26px; border-radius:6px; background:var(--sky); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;}
   .navcta{display:flex; align-items:center; gap:10px;}
+  .lang-toggle{cursor:pointer; color:var(--sky-deep); font-size:12px; font-weight:700; border:1px solid var(--line); border-radius:20px; padding:5px 12px; background:#fff;}
   .beta-note{font-size:11px; color:var(--muted);}
   .btn{display:inline-flex; align-items:center; gap:6px; cursor:pointer; border:none; border-radius:8px; padding:10px 18px; font-weight:600; font-size:13px; font-family:'Inter',sans-serif;}
   .btn-primary{background:var(--sky); color:#fff;}
@@ -121,8 +122,9 @@
   <div class="wrap">
     <div class="navbrand"><span class="navbadge">S</span> Sirong</div>
     <div class="navcta">
-      <span class="beta-note">Beta APK — allow "unknown sources" to install</span>
-      <a class="btn btn-primary" href="https://github.com/haroldderamos28/SIRONG/releases/download/v1.0.0-beta/Sirong.apk" download>Try the app →</a>
+      <span class="beta-note" id="i18n-beta-note">Beta APK — allow "unknown sources" to install</span>
+      <span id="langToggleWeb" class="lang-toggle">TL</span>
+      <a class="btn btn-primary" id="i18n-try-app" href="https://github.com/haroldderamos28/SIRONG/releases/download/v1.0.0-beta/Sirong.apk" download>Try the app →</a>
     </div>
   </div>
 </nav>
@@ -131,12 +133,12 @@
   <header class="hero">
     <div class="hero-grid">
       <div class="hero-text">
-        <p class="eyebrow">Bicol's shared parking</p>
-        <h1>Every parked car is a<br><em>worry solved.</em> Every empty<br>driveway is <em>money made.</em></h1>
-        <p class="lede">Sirong connects drivers who need a place to park with residents who have space to spare — starting in Naga, built for all of Bicol.</p>
+        <p class="eyebrow" id="i18n-hero-eyebrow">Bicol's shared parking</p>
+        <h1 id="i18n-hero-h1">Every parked car is a<br><em>worry solved.</em> Every empty<br>driveway is <em>money made.</em></h1>
+        <p class="lede" id="i18n-hero-lede">Sirong connects drivers who need a place to park with residents who have space to spare — starting in Naga, built for all of Bicol.</p>
         <div class="hero-ctas">
-          <a class="btn btn-primary" href="app.html">Find or list a spot →</a>
-          <a class="btn btn-ghost" href="#mission">Our mission</a>
+          <a class="btn btn-primary" id="i18n-hero-cta1" href="app.html">Find or list a spot →</a>
+          <a class="btn btn-ghost" id="i18n-hero-cta2" href="#mission">Our mission</a>
         </div>
       </div>
       <div class="hero-visual">
@@ -250,8 +252,8 @@
   <div class="showcase">
     <img src="parking-preview.png" alt="Sirong parking app — finding and booking a parking spot, and earning by renting one out" />
     <div class="showcase-caption">
-      <h2>This is Sirong.</h2>
-      <p>Find a spot near you in seconds, or list your own driveway and start earning — the same easy experience, built for drivers and space owners across Bicol.</p>
+      <h2 id="i18n-showcase-h2">This is Sirong.</h2>
+      <p id="i18n-showcase-p">Find a spot near you in seconds, or list your own driveway and start earning — the same easy experience, built for drivers and space owners across Bicol.</p>
     </div>
   </div>
 
@@ -259,21 +261,21 @@
 
   <section id="mission">
     <div class="section-head">
-      <p class="eyebrow">Why we exist</p>
-      <h2>Two problems, one fix.</h2>
-      <p>Across Bicol, drivers circle the block looking for somewhere — anywhere — to leave their car, while residents a few houses down have a driveway or garage slot sitting empty all day. Sirong exists to close that gap.</p>
+      <p class="eyebrow" id="i18n-mission-eyebrow">Why we exist</p>
+      <h2 id="i18n-mission-h2">Two problems, one fix.</h2>
+      <p id="i18n-mission-intro">Across Bicol, drivers circle the block looking for somewhere — anywhere — to leave their car, while residents a few houses down have a driveway or garage slot sitting empty all day. Sirong exists to close that gap.</p>
     </div>
 
     <div class="pair">
       <div class="pair-card">
-        <span class="tag tag-driver">Mission</span>
-        <h3>Take the worry out of parking.</h3>
-        <p>Our mission is to help car owners drop the stress of finding parking — wherever they are in Bicol. No more circling the block, no more risking a tow, no more guessing. Just a spot, booked and confirmed, before you even leave the house.</p>
+        <span class="tag tag-driver" id="i18n-mission-tag1">Mission</span>
+        <h3 id="i18n-mission-h3-1">Take the worry out of parking.</h3>
+        <p id="i18n-mission-p1">Sirong connects drivers who need a place to park with residents who have space to spare — starting in Naga, built for all of Bicol. Every parked car is a worry solved. Every empty driveway is money made.</p>
       </div>
       <div class="pair-card">
-        <span class="tag tag-owner">Vision</span>
-        <h3>Turn unused space into real income.</h3>
-        <p>Our vision is a Bicol where every idle driveway, garage, and vacant lot works for its owner instead of sitting empty. If you have space you're not using, Sirong helps you turn it into steady, honest income — on your own terms and your own schedule.</p>
+        <span class="tag tag-owner" id="i18n-mission-tag2">Vision</span>
+        <h3 id="i18n-mission-h3-2">Turn unused space into real income.</h3>
+        <p id="i18n-mission-p2">A Bicol where finding parking is never a hassle, and every homeowner with an empty driveway has a simple, trusted way to earn from it — safely, and with real accountability between neighbors.</p>
       </div>
     </div>
   </section>
@@ -282,26 +284,26 @@
 
   <section id="why-sirong">
     <div class="section-head">
-      <p class="eyebrow">Why choose Sirong</p>
-      <h2>Built for your peace of mind.</h2>
-      <p>Every booking on Sirong happens between two verified people — not anonymous strangers guessing about each other. We require real ID verification before anyone can book or list a space, no exceptions. If an account isn't verified, it simply can't transact on Sirong.</p>
+      <p class="eyebrow" id="i18n-why-eyebrow">Why choose Sirong</p>
+      <h2 id="i18n-why-h2">Built for your peace of mind.</h2>
+      <p id="i18n-why-intro">Every booking on Sirong happens between two verified people — not anonymous strangers guessing about each other. We require real ID verification before anyone can book or list a space, no exceptions. If an account isn't verified, it simply can't transact on Sirong.</p>
     </div>
 
     <div class="feature-strip">
       <div class="fcard">
         <span class="ficon sky"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
-        <h4>ID-verified, both sides</h4>
-        <p>Every driver and every space owner completes ID verification before their first booking or listing — no anonymous accounts on either end.</p>
+        <h4 id="i18n-why-fcard1-h4">ID-verified, both sides</h4>
+        <p id="i18n-why-fcard1-p">Every driver and every space owner completes ID verification before their first booking or listing — no anonymous accounts on either end.</p>
       </div>
       <div class="fcard">
         <span class="ficon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span>
-        <h4>No verification, no transaction</h4>
-        <p>Unverified accounts can browse freely, but Sirong strictly blocks any unverified account from booking or listing a space.</p>
+        <h4 id="i18n-why-fcard2-h4">No verification, no transaction</h4>
+        <p id="i18n-why-fcard2-p">Unverified accounts can browse freely, but Sirong strictly blocks any unverified account from booking or listing a space.</p>
       </div>
       <div class="fcard">
         <span class="ficon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg></span>
-        <h4>A visible Verified badge</h4>
-        <p>Verified owners are marked clearly on their listings, and only verified owners can offer Instant Book — trust you can see, not just take our word for.</p>
+        <h4 id="i18n-why-fcard3-h4">A visible Verified badge</h4>
+        <p id="i18n-why-fcard3-p">Verified owners are marked clearly on their listings, and only verified owners can offer Instant Book — trust you can see, not just take our word for.</p>
       </div>
     </div>
   </section>
@@ -310,17 +312,17 @@
 
   <section id="how-it-works">
     <div class="section-head">
-      <p class="eyebrow">How it works</p>
-      <h2>Park anywhere in Bicol.<br>Earn from home.</h2>
+      <p class="eyebrow" id="i18n-how-eyebrow">How it works</p>
+      <h2 id="i18n-how-h2">Park anywhere in Bicol.<br>Earn from home.</h2>
     </div>
 
     <div class="feature-top">
       <div class="feature-copy">
-        <h3>Find parking. Anywhere in Bicol.<br><em>Peace of mind, every time.</em></h3>
+        <h3 id="i18n-how-feature-h3">Find parking. Anywhere in Bicol.<br><em>Peace of mind, every time.</em></h3>
         <ul class="blist">
-          <li><span class="bicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span> Find nearby parking spots</li>
-          <li><span class="bicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span> Rent out your unused space</li>
-          <li><span class="bicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span> Safe, easy &amp; trusted by neighbors</li>
+          <li><span class="bicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span> <span id="i18n-how-li1">Find nearby parking spots</span></li>
+          <li><span class="bicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span> <span id="i18n-how-li2">Rent out your unused space</span></li>
+          <li><span class="bicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span> <span id="i18n-how-li3">Safe, easy &amp; trusted by neighbors</span></li>
         </ul>
       </div>
       <div class="phone-wrap">
@@ -343,18 +345,18 @@
     <div class="feature-strip">
       <div class="fcard">
         <span class="ficon gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.5 1.5-2.5 3-2.5s3 1 3 2.5-1.5 2-3 2.5-3 1-3 2.5 1.5 2.5 3 2.5 3-1 3-2.5"/></svg></span>
-        <h4>Earn extra by renting your space</h4>
-        <p>List your driveway or garage in minutes and get paid every time someone books it.</p>
+        <h4 id="i18n-how-fcard1-h4">Earn extra by renting your space</h4>
+        <p id="i18n-how-fcard1-p">List your driveway or garage in minutes and get paid every time someone books it.</p>
       </div>
       <div class="fcard">
         <span class="ficon sky"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="17" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M4.5 17H3v-4l2-5h9l3 5h1.5v4h-1.5"/></svg></span>
-        <h4>More parking, less stress</h4>
-        <p>No more circling the block — see real spots near you before you even leave the house.</p>
+        <h4 id="i18n-how-fcard2-h4">More parking, less stress</h4>
+        <p id="i18n-how-fcard2-p">No more circling the block — see real spots near you before you even leave the house.</p>
       </div>
       <div class="fcard">
         <span class="ficon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.5-7-10a4 4 0 018-1 4 4 0 018 1c0 5.5-7 10-7 10z"/></svg></span>
-        <h4>Good for your wallet,<br>great for your neighborhood</h4>
-        <p>Every booking connects two neighbors — happier drivers, happier hosts.</p>
+        <h4 id="i18n-how-fcard3-h4">Good for your wallet,<br>great for your neighborhood</h4>
+        <p id="i18n-how-fcard3-p">Every booking connects two neighbors — happier drivers, happier hosts.</p>
       </div>
     </div>
   </section>
@@ -363,47 +365,181 @@
 
   <section>
     <div class="section-head">
-      <p class="eyebrow">Growing region by region</p>
-      <h2>Starting home, going regional.</h2>
-      <p>We're launching where we know the streets best, then following the same need across the rest of Bicol.</p>
+      <p class="eyebrow" id="i18n-roadmap-eyebrow">Growing region by region</p>
+      <h2 id="i18n-roadmap-h2">Starting home, going regional.</h2>
+      <p id="i18n-roadmap-p">We're launching where we know the streets best, then following the same need across the rest of Bicol.</p>
     </div>
     <div class="roadmap">
       <div class="stop now">
-        <p class="stage">Now</p>
+        <p class="stage" id="i18n-stop1-stage">Now</p>
         <h4>Naga City</h4>
-        <p>Launch city — CBD, university belt, and Peñafrancia Fiesta parking.</p>
+        <p id="i18n-stop1-p">Launch city — CBD, university belt, and Peñafrancia Fiesta parking.</p>
       </div>
       <div class="stop">
-        <p class="stage">Next</p>
+        <p class="stage" id="i18n-stop2-stage">Next</p>
         <h4>Camarines Sur</h4>
-        <p>Iriga, Pili, and the towns feeding into Naga's daily traffic.</p>
+        <p id="i18n-stop2-p">Iriga, Pili, and the towns feeding into Naga's daily traffic.</p>
       </div>
       <div class="stop">
-        <p class="stage">Then</p>
+        <p class="stage" id="i18n-stop3-stage">Then</p>
         <h4>Albay &amp; Legazpi</h4>
-        <p>Bicol's other major hub, same driveway-to-driver model.</p>
+        <p id="i18n-stop3-p">Bicol's other major hub, same driveway-to-driver model.</p>
       </div>
       <div class="stop">
-        <p class="stage">Beyond</p>
-        <h4>All of Bicol</h4>
-        <p>Camarines Norte, Sorsogon, Catanduanes, Masbate — wherever the need is.</p>
+        <p class="stage" id="i18n-stop4-stage">Beyond</p>
+        <h4 id="i18n-stop4-h4">All of Bicol</h4>
+        <p id="i18n-stop4-p">Camarines Norte, Sorsogon, Catanduanes, Masbate — wherever the need is.</p>
       </div>
     </div>
   </section>
 
   <div class="cta-band">
-    <h2 class="serif">Got a car, or got a driveway?</h2>
-    <p>Either way, there's a place for you on Sirong.</p>
-    <a class="btn btn-primary" href="app.html">Open the app →</a>
+    <h2 class="serif" id="i18n-cta-h2">Got a car, or got a driveway?</h2>
+    <p id="i18n-cta-p">Either way, there's a place for you on Sirong.</p>
+    <a class="btn btn-primary" id="i18n-cta-btn" href="app.html">Open the app →</a>
   </div>
 </div>
 
 <footer>
   <div class="wrap">
-    <p>Sirong · Bicol's shared parking</p>
+    <p id="i18n-footer-p1">Sirong · Bicol's shared parking</p>
     <p>Dagos po kamo — welcome, come park with us.</p>
   </div>
 </footer>
+
+<script>
+  const WEB_TRANSLATIONS = {
+    en: {
+      'i18n-beta-note': 'Beta APK — allow "unknown sources" to install',
+      'i18n-try-app': 'Try the app →',
+      'i18n-hero-eyebrow': "Bicol's shared parking",
+      'i18n-hero-h1': 'Every parked car is a<br><em>worry solved.</em> Every empty<br>driveway is <em>money made.</em>',
+      'i18n-hero-lede': 'Sirong connects drivers who need a place to park with residents who have space to spare — starting in Naga, built for all of Bicol.',
+      'i18n-hero-cta1': 'Find or list a spot →',
+      'i18n-hero-cta2': 'Our mission',
+      'i18n-showcase-h2': 'This is Sirong.',
+      'i18n-showcase-p': 'Find a spot near you in seconds, or list your own driveway and start earning — the same easy experience, built for drivers and space owners across Bicol.',
+      'i18n-mission-eyebrow': 'Why we exist',
+      'i18n-mission-h2': 'Two problems, one fix.',
+      'i18n-mission-intro': 'Across Bicol, drivers circle the block looking for somewhere — anywhere — to leave their car, while residents a few houses down have a driveway or garage slot sitting empty all day. Sirong exists to close that gap.',
+      'i18n-mission-tag1': 'Mission',
+      'i18n-mission-h3-1': 'Take the worry out of parking.',
+      'i18n-mission-p1': 'Sirong connects drivers who need a place to park with residents who have space to spare — starting in Naga, built for all of Bicol. Every parked car is a worry solved. Every empty driveway is money made.',
+      'i18n-mission-tag2': 'Vision',
+      'i18n-mission-h3-2': 'Turn unused space into real income.',
+      'i18n-mission-p2': 'A Bicol where finding parking is never a hassle, and every homeowner with an empty driveway has a simple, trusted way to earn from it — safely, and with real accountability between neighbors.',
+      'i18n-why-eyebrow': 'Why choose Sirong',
+      'i18n-why-h2': 'Built for your peace of mind.',
+      'i18n-why-intro': "Every booking on Sirong happens between two verified people — not anonymous strangers guessing about each other. We require real ID verification before anyone can book or list a space, no exceptions. If an account isn't verified, it simply can't transact on Sirong.",
+      'i18n-why-fcard1-h4': 'ID-verified, both sides',
+      'i18n-why-fcard1-p': 'Every driver and every space owner completes ID verification before their first booking or listing — no anonymous accounts on either end.',
+      'i18n-why-fcard2-h4': 'No verification, no transaction',
+      'i18n-why-fcard2-p': 'Unverified accounts can browse freely, but Sirong strictly blocks any unverified account from booking or listing a space.',
+      'i18n-why-fcard3-h4': 'A visible Verified badge',
+      'i18n-why-fcard3-p': 'Verified owners are marked clearly on their listings, and only verified owners can offer Instant Book — trust you can see, not just take our word for.',
+      'i18n-how-eyebrow': 'How it works',
+      'i18n-how-h2': 'Park anywhere in Bicol.<br>Earn from home.',
+      'i18n-how-feature-h3': 'Find parking. Anywhere in Bicol.<br><em>Peace of mind, every time.</em>',
+      'i18n-how-li1': 'Find nearby parking spots',
+      'i18n-how-li2': 'Rent out your unused space',
+      'i18n-how-li3': 'Safe, easy &amp; trusted by neighbors',
+      'i18n-how-fcard1-h4': 'Earn extra by renting your space',
+      'i18n-how-fcard1-p': 'List your driveway or garage in minutes and get paid every time someone books it.',
+      'i18n-how-fcard2-h4': 'More parking, less stress',
+      'i18n-how-fcard2-p': 'No more circling the block — see real spots near you before you even leave the house.',
+      'i18n-how-fcard3-h4': 'Good for your wallet,<br>great for your neighborhood',
+      'i18n-how-fcard3-p': 'Every booking connects two neighbors — happier drivers, happier hosts.',
+      'i18n-roadmap-eyebrow': 'Growing region by region',
+      'i18n-roadmap-h2': 'Starting home, going regional.',
+      'i18n-roadmap-p': "We're launching where we know the streets best, then following the same need across the rest of Bicol.",
+      'i18n-stop1-stage': 'Now',
+      'i18n-stop1-p': 'Launch city — CBD, university belt, and Peñafrancia Fiesta parking.',
+      'i18n-stop2-stage': 'Next',
+      'i18n-stop2-p': "Iriga, Pili, and the towns feeding into Naga's daily traffic.",
+      'i18n-stop3-stage': 'Then',
+      'i18n-stop3-p': "Bicol's other major hub, same driveway-to-driver model.",
+      'i18n-stop4-stage': 'Beyond',
+      'i18n-stop4-h4': 'All of Bicol',
+      'i18n-stop4-p': 'Camarines Norte, Sorsogon, Catanduanes, Masbate — wherever the need is.',
+      'i18n-cta-h2': 'Got a car, or got a driveway?',
+      'i18n-cta-p': "Either way, there's a place for you on Sirong.",
+      'i18n-cta-btn': 'Open the app →',
+      'i18n-footer-p1': "Sirong · Bicol's shared parking",
+    },
+    tl: {
+      'i18n-beta-note': 'Beta APK — payagan ang "unknown sources" para ma-install',
+      'i18n-try-app': 'Subukan ang app →',
+      'i18n-hero-eyebrow': 'Shared parking ng Bicol',
+      'i18n-hero-h1': 'Bawat naka-park na sasakyan ay<br><em>alalahanin na nalutas.</em> Bawat walang lamang<br>driveway ay <em>pera na kinita.</em>',
+      'i18n-hero-lede': 'Ikinokonekta ng Sirong ang mga drivers na naghahanap ng lugar na maipapark ang sasakyan sa mga residente na may sobrang espasyo — nagsimula sa Naga, para sa buong Bicol.',
+      'i18n-hero-cta1': 'Maghanap o mag-list ng spot →',
+      'i18n-hero-cta2': 'Aming misyon',
+      'i18n-showcase-h2': 'Ito ang Sirong.',
+      'i18n-showcase-p': 'Maghanap ng spot malapit sa iyo sa ilang segundo lang, o i-list ang sarili mong driveway at magsimulang kumita — parehong madaling karanasan, ginawa para sa mga drivers at space owners sa buong Bicol.',
+      'i18n-mission-eyebrow': 'Bakit kami umiiral',
+      'i18n-mission-h2': 'Dalawang problema, isang solusyon.',
+      'i18n-mission-intro': 'Sa buong Bicol, umiikot ang mga drivers sa kalye naghahanap ng kahit saan para maiwan ang sasakyan, habang ang mga residente naman ay may driveway o garage na walang laman buong araw. Umiiral ang Sirong para tapusin ang gap na iyon.',
+      'i18n-mission-tag1': 'Misyon',
+      'i18n-mission-h3-1': 'Alisin ang alalahanin sa pagpapark.',
+      'i18n-mission-p1': 'Ikinokonekta ng Sirong ang mga drivers na naghahanap ng lugar na maipapark ang sasakyan sa mga residente na may sobrang espasyo — nagsimula sa Naga, para sa buong Bicol. Bawat naka-park na sasakyan ay isang alalahanin na nalutas. Bawat walang laman na driveway ay pagkakataong kumita.',
+      'i18n-mission-tag2': 'Bisyon',
+      'i18n-mission-h3-2': 'Gawing tunay na kita ang hindi ginagamit na espasyo.',
+      'i18n-mission-p2': 'Isang Bicol kung saan ang paghahanap ng parking ay hindi na hassle, at bawat may-ari ng bahay na may walang laman na driveway ay may simple at mapagkakatiwalaang paraan para kumita rito — ligtas, at may tunay na accountability sa pagitan ng magkapitbahay.',
+      'i18n-why-eyebrow': 'Bakit piliin ang Sirong',
+      'i18n-why-h2': 'Ginawa para sa iyong peace of mind.',
+      'i18n-why-intro': 'Bawat booking sa Sirong ay sa pagitan ng dalawang verified na tao — hindi anonymous na stranger na nagpapalagayan lang. Kailangan ang tunay na ID verification bago makapag-book o makapag-list ng space ang sinuman, walang exception. Kung hindi verified ang account, hindi ito puwedeng mag-transact sa Sirong.',
+      'i18n-why-fcard1-h4': 'ID-verified, parehong panig',
+      'i18n-why-fcard1-p': 'Kumpleto ang ID verification ng bawat driver at space owner bago ang unang booking o listing nila — walang anonymous na account sa magkabilang panig.',
+      'i18n-why-fcard2-h4': 'Walang verification, walang transaction',
+      'i18n-why-fcard2-p': 'Puwedeng mag-browse nang libre ang mga unverified account, pero mahigpit na hina-block ng Sirong ang anumang unverified account sa pag-book o pag-list ng space.',
+      'i18n-why-fcard3-h4': 'Makikitang Verified badge',
+      'i18n-why-fcard3-p': 'Malinaw na minarkahan ang mga verified owner sa kanilang listings, at tanging mga verified owner lang ang puwedeng mag-offer ng Instant Book — tiwalang makikita mo, hindi lang basta sasabihin namin.',
+      'i18n-how-eyebrow': 'Paano ito gumagana',
+      'i18n-how-h2': 'Mag-park kahit saan sa Bicol.<br>Kumita mula sa bahay.',
+      'i18n-how-feature-h3': 'Maghanap ng parking. Kahit saan sa Bicol.<br><em>Peace of mind, sa bawat oras.</em>',
+      'i18n-how-li1': 'Maghanap ng malapit na parking spots',
+      'i18n-how-li2': 'Ipa-rent ang hindi ginagamit mong espasyo',
+      'i18n-how-li3': 'Ligtas, madali, at pinagkakatiwalaan ng mga kapitbahay',
+      'i18n-how-fcard1-h4': 'Kumita ng extra sa pag-rent ng space mo',
+      'i18n-how-fcard1-p': 'I-list ang driveway o garahe mo sa loob ng ilang minuto at makatanggap ng bayad tuwing may nagbo-book nito.',
+      'i18n-how-fcard2-h4': 'Mas maraming parking, mas kaunting stress',
+      'i18n-how-fcard2-p': 'Wala nang pag-ikot sa kalye — makita ang totoong spots malapit sa iyo bago ka pa umalis ng bahay.',
+      'i18n-how-fcard3-h4': 'Mabuti sa wallet mo,<br>mas mabuti sa komunidad mo',
+      'i18n-how-fcard3-p': 'Bawat booking ay nagkokonekta ng dalawang kapitbahay — mas masayang drivers, mas masayang hosts.',
+      'i18n-roadmap-eyebrow': 'Lumalago rehiyon by rehiyon',
+      'i18n-roadmap-h2': 'Nagsisimula sa bahay, papuntang regional.',
+      'i18n-roadmap-p': 'Naglalaunch kami kung saan alam namin ang mga kalye, tapos susundin ang parehong pangangailangan sa buong Bicol.',
+      'i18n-stop1-stage': 'Ngayon',
+      'i18n-stop1-p': 'Launch city — CBD, university belt, at Peñafrancia Fiesta parking.',
+      'i18n-stop2-stage': 'Susunod',
+      'i18n-stop2-p': 'Iriga, Pili, at ang mga bayan na nag-aambag sa daily traffic ng Naga.',
+      'i18n-stop3-stage': 'Pagkatapos',
+      'i18n-stop3-p': 'Ibang major hub ng Bicol, parehong driveway-to-driver model.',
+      'i18n-stop4-stage': 'At pa iba pa',
+      'i18n-stop4-h4': 'Buong Bicol',
+      'i18n-stop4-p': 'Camarines Norte, Sorsogon, Catanduanes, Masbate — saan man kailangan.',
+      'i18n-cta-h2': 'May sasakyan ka, o may driveway ka?',
+      'i18n-cta-p': 'Sa dalawang paraan, may lugar ka sa Sirong.',
+      'i18n-cta-btn': 'Buksan ang app →',
+      'i18n-footer-p1': 'Sirong · Shared parking ng Bicol',
+    },
+  };
+
+  let webLang = 'en';
+  function applyWebLang(){
+    const dict = WEB_TRANSLATIONS[webLang];
+    Object.keys(dict).forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = dict[id];
+    });
+    const toggle = document.getElementById('langToggleWeb');
+    if (toggle) toggle.textContent = webLang === 'en' ? 'TL' : 'EN';
+  }
+  document.getElementById('langToggleWeb').addEventListener('click', () => {
+    webLang = webLang === 'en' ? 'tl' : 'en';
+    applyWebLang();
+  });
+</script>
 
 </body>
 </html>
