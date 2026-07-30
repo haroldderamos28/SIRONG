@@ -607,6 +607,8 @@ const TRANSLATIONS = {
     pick_date_see_hours: 'Pick a date above to see the hours.',
     availability_for: 'Availability for', open_green: '(green = open)',
     time_closed: 'That time is closed, please pick another time.',
+    cannot_book_past_date: "You can't book a date that has already passed.",
+    cannot_book_past_time: "That time has already passed today, please pick a later time.",
     booking_instant_confirmed: 'Booked instantly — confirmed',
     booking_request_sent: 'Booking request sent, waiting for approval',
     report_link: 'Report a problem',
@@ -755,6 +757,8 @@ const TRANSLATIONS = {
     pick_date_see_hours: 'Pumili ng petsa sa itaas para makita ang oras.',
     availability_for: 'Availability para sa', open_green: '(berde = bukas)',
     time_closed: 'Naka-close ang space sa oras na iyon, pumili ng ibang oras.',
+    cannot_book_past_date: 'Hindi mo pwedeng i-book ang petsang nakaraan na.',
+    cannot_book_past_time: 'Nakaraan na ang oras na iyon ngayong araw, pumili ng mas huling oras.',
     booking_instant_confirmed: 'Naka-book agad — instant confirm',
     booking_request_sent: 'Booking request sent, hintayin approval',
     report_link: 'Report a problem',
@@ -1139,6 +1143,10 @@ function pad2(n){ return n.toString().padStart(2,'0'); }
 function daysInMonth(year, monthIdx){ return new Date(year, monthIdx+1, 0).getDate(); }
 function firstWeekday(year, monthIdx){ return new Date(year, monthIdx, 1).getDay(); }
 function dateKey(year, monthIdx, day){ return `${year}-${pad2(monthIdx+1)}-${pad2(day)}`; }
+function todayDateKey(){
+  const now = new Date();
+  return dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+}
 
 const HOUR_LABELS = ['12AM','1AM','2AM','3AM','4AM','5AM','6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM','10PM','11PM'];
 
@@ -1857,6 +1865,7 @@ function renderBookingCalendarHtml(listingId){
   const totalDays = daysInMonth(year, monthIdx);
   const startWeekday = firstWeekday(year, monthIdx);
   const setDates = new Set(state.listingHours.filter(h => h.listing_id === listingId).map(h => h.hour_date));
+  const todayKey = todayDateKey();
 
   let cells = '';
   for (let i=0;i<startWeekday;i++){ cells += `<div></div>`; }
@@ -1864,7 +1873,12 @@ function renderBookingCalendarHtml(listingId){
     const key = dateKey(year, monthIdx, d);
     const isSelected = state.bookingSelectedDate === key;
     const hasCustom = setDates.has(key);
-    cells += `<div class="cal-day ${isSelected?'selected':''} ${hasCustom?'has-custom':''}" data-book-cal-date="${key}">${d}</div>`;
+    const isPast = key < todayKey;
+    if (isPast){
+      cells += `<div class="cal-day" style="color:#C7D3D8; cursor:not-allowed;">${d}</div>`;
+    } else {
+      cells += `<div class="cal-day ${isSelected?'selected':''} ${hasCustom?'has-custom':''}" data-book-cal-date="${key}">${d}</div>`;
+    }
   }
 
   return `
@@ -1944,6 +1958,7 @@ function openBooking(listingId){
   }
   document.getElementById('modalTitle').textContent = t('book_modal_title_prefix') + ' ' + state.bookingTarget.address;
   document.getElementById('bfDate').value = '';
+  document.getElementById('bfDate').min = todayDateKey();
   document.getElementById('bfStart').value = '';
   document.getElementById('bfEnd').value = '';
   document.getElementById('bfPay').textContent = t('payment_label') + ': ' + (state.bookingTarget.payment || 'GCash');
@@ -2271,7 +2286,24 @@ document.getElementById('bfConfirm').onclick = async () => {
   const date = document.getElementById('bfDate').value;
   const start = document.getElementById('bfStart').value;
   const end = document.getElementById('bfEnd').value;
-  if (!date || !start || !end) { showToast(t('complete_email_password')); return; }
+  if (!date || !start || !end) { showToast(t('complete_date_time')); return; }
+
+  const todayKey = todayDateKey();
+  if (date < todayKey){
+    showToast(t('cannot_book_past_date'));
+    return;
+  }
+  if (date === todayKey){
+    const now = new Date();
+    const [startH, startM] = start.split(':').map(Number);
+    const startTotalMinutes = startH * 60 + startM;
+    const nowTotalMinutes = now.getHours() * 60 + now.getMinutes();
+    if (startTotalMinutes < nowTotalMinutes){
+      showToast(t('cannot_book_past_time'));
+      return;
+    }
+  }
+
   if (!isRangeAvailable(state.bookingTarget.id, date, start, end)){
     showToast(t('time_closed'));
     return;
