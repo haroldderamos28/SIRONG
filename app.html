@@ -1001,6 +1001,7 @@ let state = {
 let searchMapInstance = null;
 let formMapInstance = null;
 let formMarker = null;
+let searchShellRendered = false;
 
 function toRad(v){ return v * Math.PI / 180; }
 function distanceKm(lat1, lng1, lat2, lng2){
@@ -1021,15 +1022,7 @@ function showToast(msg){
 function featureIcon(id){ return ICONS[id] || ''; }
 function featureLabel(id){ return t('feature_' + id); }
 
-function renderSearch(){
-  let filtered = state.listings
-    .filter(l => state.activeFilters.every(f => l.features.includes(f)));
-
-  if (state.userLocation){
-    filtered = filtered.map(l => ({ ...l, _dist: (l.lat && l.lng) ? distanceKm(state.userLocation.lat, state.userLocation.lng, l.lat, l.lng) : null }));
-    filtered.sort((a,b) => (a._dist ?? 999) - (b._dist ?? 999));
-  }
-
+function renderSearchShell(){
   let html = `<button class="loc-btn" id="findNearMe">${t('find_spots_near_me')}</button>`;
   html += `<div class="map-box" id="searchMap"></div>`;
 
@@ -1038,11 +1031,25 @@ function renderSearch(){
     return `<span class="chip ${active?'active':''}" data-filter="${f.id}">${featureIcon(f.id)} ${featureLabel(f.id)}</span>`;
   }).join('') + `</div>`;
 
-  if (filtered.length === 0){
-    html += `<p class="empty">${t('no_match_filters')}</p>`;
+  html += `<div id="listingsContainer">${renderListingsCardsHtml()}</div>`;
+
+  return html;
+}
+
+function renderListingsCardsHtml(){
+  let filtered = state.listings
+    .filter(l => state.activeFilters.every(f => l.features.includes(f)));
+
+  if (state.userLocation){
+    filtered = filtered.map(l => ({ ...l, _dist: (l.lat && l.lng) ? distanceKm(state.userLocation.lat, state.userLocation.lng, l.lat, l.lng) : null }));
+    filtered.sort((a,b) => (a._dist ?? 999) - (b._dist ?? 999));
   }
 
-  html += filtered.map(l => `
+  if (filtered.length === 0){
+    return `<p class="empty">${t('no_match_filters')}</p>`;
+  }
+
+  return filtered.map(l => `
     <div class="card">
       ${(() => { const photos = (l.photos && l.photos.length) ? l.photos : (l.photo ? [l.photo] : []); return photos.length
         ? `<img class="card-photo" src="${photos[0]}" alt="${l.address}" onclick="window.__openLightbox('${l.id}',0)" />${photos.length > 1 ? `<div class="thumb-row">${photos.map((p,i) => `<img class="thumb" src="${p}" onclick="window.__openLightbox('${l.id}',${i})" />`).join('')}</div>` : ''}`
@@ -1086,8 +1093,6 @@ function renderSearch(){
       <button class="btn btn-primary" data-book="${l.id}">${l.instant ? t('book_instant') : t('send_booking_request')}</button>`}
     </div>
   `).join('');
-
-  return html;
 }
 
 let lightboxState = { photos: [], index: 0 };
@@ -1109,6 +1114,9 @@ window.__lightboxNav = function(dir){
   renderLightbox();
 };
 
+let searchMarkersLayer = null;
+let searchCenteredOnUserLocation = false;
+
 function initSearchMap(){
   const el = document.getElementById('searchMap');
   if (!el) return;
@@ -1116,10 +1124,22 @@ function initSearchMap(){
   const center = state.userLocation ? [state.userLocation.lat, state.userLocation.lng] : NAGA_CENTER;
   searchMapInstance = L.map('searchMap', { zoomControl: false }).setView(center, 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(searchMapInstance);
+  searchMarkersLayer = L.layerGroup().addTo(searchMapInstance);
+  searchCenteredOnUserLocation = !!state.userLocation;
+  updateSearchMapMarkers();
+}
+
+function updateSearchMapMarkers(){
+  if (!searchMapInstance || !searchMarkersLayer) return;
+  searchMarkersLayer.clearLayers();
 
   if (state.userLocation){
     L.circleMarker([state.userLocation.lat, state.userLocation.lng], { radius: 8, color: '#5AACD6', fillColor: '#5AACD6', fillOpacity: 0.9 })
-      .addTo(searchMapInstance).bindPopup('You are here');
+      .addTo(searchMarkersLayer).bindPopup('You are here');
+    if (!searchCenteredOnUserLocation){
+      searchMapInstance.setView([state.userLocation.lat, state.userLocation.lng], 14);
+      searchCenteredOnUserLocation = true;
+    }
   }
 
   const visible = state.listings
@@ -1127,7 +1147,7 @@ function initSearchMap(){
     .filter(l => l.lat && l.lng);
 
   visible.forEach(l => {
-    const marker = L.marker([l.lat, l.lng]).addTo(searchMapInstance);
+    const marker = L.marker([l.lat, l.lng]).addTo(searchMarkersLayer);
     const isOwnListing = state.user && l.user_id === state.user.id;
     const popupHtml = `<p class="popup-title">${l.address}</p><p class="popup-price">₱${l.price}/hr · ${l.owner}</p>${isOwnListing ? '' : `<button class="popup-btn" onclick="window.__bookFromMap('${l.id}')">Book</button>`}`;
     marker.bindPopup(popupHtml);
@@ -1462,12 +1482,27 @@ function render(){
     renderAccountRow();
     return;
   }
-  if (state.tab === 'search') content.innerHTML = renderSearch();
-  else if (state.tab === 'list') content.innerHTML = state.user ? renderListForm() : loginRequiredBlock(t('login_required_list'));
-  else if (state.tab === 'myspaces') content.innerHTML = state.user ? renderMySpaces() : loginRequiredBlock(t('login_required_myspaces'));
-  else content.innerHTML = state.user ? renderBookings() : loginRequiredBlock(t('login_required_bookings'));
 
-  if (state.tab === 'search') setTimeout(initSearchMap, 0);
+  if (state.tab === 'search'){
+    const shellIntact = searchShellRendered && document.getElementById('searchMap') && document.getElementById('listingsContainer');
+    if (shellIntact){
+      document.getElementById('listingsContainer').innerHTML = renderListingsCardsHtml();
+      document.querySelectorAll('.chip-row .chip[data-filter]').forEach(chip => {
+        chip.classList.toggle('active', state.activeFilters.includes(chip.dataset.filter));
+      });
+      updateSearchMapMarkers();
+    } else {
+      content.innerHTML = renderSearchShell();
+      searchShellRendered = true;
+      setTimeout(initSearchMap, 0);
+    }
+  } else {
+    searchShellRendered = false;
+    if (state.tab === 'list') content.innerHTML = state.user ? renderListForm() : loginRequiredBlock(t('login_required_list'));
+    else if (state.tab === 'myspaces') content.innerHTML = state.user ? renderMySpaces() : loginRequiredBlock(t('login_required_myspaces'));
+    else content.innerHTML = state.user ? renderBookings() : loginRequiredBlock(t('login_required_bookings'));
+  }
+
   if (state.tab === 'list' && state.user) setTimeout(initFormMap, 0);
 
   document.querySelectorAll('.nav button').forEach(btn => {
@@ -1595,6 +1630,8 @@ function attachContentListeners(){
         state.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         showToast(t('location_found'));
         render();
+        const btnAgain = document.getElementById('findNearMe');
+        if (btnAgain) btnAgain.textContent = t('find_spots_near_me');
       },
       () => { showToast(t('location_denied')); findNear.textContent = t('find_spots_near_me'); },
       { enableHighAccuracy: true, timeout: 8000 }
