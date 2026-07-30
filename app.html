@@ -601,6 +601,7 @@ const TRANSLATIONS = {
     notifications_enabled_toast: "Notifications enabled! You'll get alerts even when the app is closed.",
     notifications_denied_toast: 'Notifications were blocked. You can enable them in your browser settings.',
     notifications_not_supported: "Your browser doesn't support notifications",
+    unread_badge: 'New message',
   },
   tl: {
     feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
@@ -732,6 +733,7 @@ const TRANSLATIONS = {
     notifications_enabled_toast: 'Naka-enable na ang notifications! Makakakuha ka ng alerto kahit sarado ang app.',
     notifications_denied_toast: 'Na-block ang notifications. Puwede mo itong i-enable sa browser settings.',
     notifications_not_supported: 'Hindi supported ng browser mo ang notifications',
+    unread_badge: 'Bagong mensahe',
   },
 };
 
@@ -1239,7 +1241,7 @@ function renderMySpaces(){
           <div style="padding:6px 0; border-bottom:1px solid var(--line);">
             <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink);">
               <span>${b.renter} · ${b.date} ${b.start}–${b.end}</span>
-              <span style="display:flex; align-items:center; gap:8px;">₱${b.total}<button class="report-link" data-chat-booking="${b.id}" data-chat-other="${b.renter}" style="margin:0;">${t('message_btn')}</button></span>
+              <span style="display:flex; align-items:center; gap:8px;">₱${b.total}<button class="report-link" data-chat-booking="${b.id}" data-chat-other="${b.renter}" style="margin:0;">${t('message_btn')}</button>${state.unreadBookings.has(b.id) ? `<span class="status-badge pending">🔴 ${t('unread_badge')}</span>` : ''}</span>
             </div>
             <div style="margin-top:4px; display:flex; align-items:center; justify-content:space-between;">
               <span class="status-badge ${b.status}">${t('status_' + b.status)}</span>
@@ -1280,6 +1282,7 @@ function renderBookings(){
         </div>
         <button class="report-link" data-report="${b.id}">${t('report_link')}</button>
         <button class="report-link" data-chat-booking="${b.id}" data-chat-other="${(state.listings.find(l=>l.id===b.listingId)||{}).owner || 'Owner'}">${t('message_btn')}</button>
+        ${state.unreadBookings.has(b.id) ? `<span class="status-badge pending" style="margin-left:6px;">🔴 ${t('unread_badge')}</span>` : ''}
       </div>
       <div class="ticket-divider"></div>
       <div class="ticket-side">
@@ -2001,6 +2004,9 @@ function handleIncomingMessage(msg){
   showToast(t('new_message_from') + ' ' + otherName);
   state.unreadBookings.add(msg.booking_id);
   updateNavDots();
+  if (state.tab === 'bookings' || state.tab === 'myspaces'){
+    render();
+  }
 }
 
 let globalBookingChannel = null;
@@ -2225,6 +2231,27 @@ async function init(){
   state.listingHours = listingHours;
   state.profiles = profiles;
   state.loading = false;
+
+  const rawDeepLink = new URLSearchParams(window.location.search).get('booking');
+  const deepLinkBookingId = rawDeepLink ? rawDeepLink.trim().replace(/^["']|["']$/g, '') : null;
+  if (deepLinkBookingId && state.user){
+    const booking = state.bookings.find(b => b.id === deepLinkBookingId);
+    if (booking){
+      const isMine = booking.userId === state.user.id;
+      const listing = state.listings.find(l => l.id === booking.listingId);
+      const isMyListing = listing && listing.user_id === state.user.id;
+      if (isMine || isMyListing){
+        state.tab = isMyListing ? 'myspaces' : 'bookings';
+        state.unreadBookings.delete(deepLinkBookingId);
+        render();
+        const otherName = isMine ? (listing ? listing.owner : 'Owner') : booking.renter;
+        openChat(deepLinkBookingId, otherName);
+        window.history.replaceState({}, '', '/app.html');
+        return;
+      }
+    }
+  }
+
   render();
 }
 init();
