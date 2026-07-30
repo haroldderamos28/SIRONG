@@ -360,6 +360,7 @@ async function signOutUser(){
   state.user = null;
   state.profile = null;
   state.unreadBookings = new Set();
+  state.pushSubscribed = false;
   if (globalMessageChannel){ sb.removeChannel(globalMessageChannel); globalMessageChannel = null; }
   if (globalBookingChannel){ sb.removeChannel(globalBookingChannel); globalBookingChannel = null; }
   if (globalNotificationChannel){ sb.removeChannel(globalNotificationChannel); globalNotificationChannel = null; }
@@ -417,10 +418,57 @@ async function subscribeToPush(){
     };
     const { error } = await sb.from('push_subscriptions').upsert(row, { onConflict: 'user_id,endpoint' });
     if (error){ console.error(error); showToast(t('error_save_generic')); return; }
+    state.pushSubscribed = true;
     showToast(t('notifications_enabled_toast'));
+    renderAccountRow();
   } catch (err){
     console.error(err);
     showToast(t('error_save_generic'));
+  }
+}
+
+async function unsubscribeFromPush(){
+  if (!state.user) return;
+  try {
+    const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (registration){
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription){
+        const endpoint = subscription.endpoint;
+        await subscription.unsubscribe();
+        await sb.from('push_subscriptions').delete().eq('user_id', state.user.id).eq('endpoint', endpoint);
+      }
+    }
+    state.pushSubscribed = false;
+    showToast(t('notifications_disabled_toast'));
+    renderAccountRow();
+  } catch (err){
+    console.error(err);
+    showToast(t('error_save_generic'));
+  }
+}
+
+async function checkPushSubscriptionStatus(){
+  if (!state.user || !('serviceWorker' in navigator) || !('PushManager' in window)){
+    state.pushSubscribed = false;
+    return;
+  }
+  try {
+    const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (!registration){ state.pushSubscribed = false; renderAccountRow(); return; }
+    const subscription = await registration.pushManager.getSubscription();
+    state.pushSubscribed = !!subscription;
+  } catch (err){
+    state.pushSubscribed = false;
+  }
+  renderAccountRow();
+}
+
+async function togglePush(){
+  if (state.pushSubscribed){
+    await unsubscribeFromPush();
+  } else {
+    await subscribeToPush();
   }
 }
 
@@ -604,6 +652,8 @@ const TRANSLATIONS = {
     notifications_not_supported: "Your browser doesn't support notifications",
     unread_badge: 'New message',
     owner_fallback_label: 'Owner',
+    disable_notifications_btn: 'Disable notifications',
+    notifications_disabled_toast: 'Notifications turned off.',
   },
   tl: {
     feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV',
@@ -737,6 +787,8 @@ const TRANSLATIONS = {
     notifications_not_supported: 'Hindi supported ng browser mo ang notifications',
     unread_badge: 'Bagong mensahe',
     owner_fallback_label: 'May-ari',
+    disable_notifications_btn: 'I-disable ang notifications',
+    notifications_disabled_toast: 'Naka-off na ang notifications.',
   },
 };
 
@@ -904,6 +956,7 @@ let state = {
   verifiedMap: {},
   authMode: 'login',
   pendingAction: null,
+  pushSubscribed: false,
 };
 
 let searchMapInstance = null;
@@ -1308,11 +1361,11 @@ function renderAccountRow(){
   const row = document.getElementById('accountRow');
   if (!row) return;
   if (state.user){
-    row.innerHTML = `<span class="account-label">Hi, ${state.user.displayName}</span><span style="display:flex; gap:6px;"><button class="account-btn" id="notifBtn" title="${t('enable_notifications_btn')}">🔔</button><button class="account-btn" id="logoutBtn">Logout</button></span>`;
+    row.innerHTML = `<span class="account-label">Hi, ${state.user.displayName}</span><span style="display:flex; gap:6px;"><button class="account-btn" id="notifBtn" title="${state.pushSubscribed ? t('disable_notifications_btn') : t('enable_notifications_btn')}">${state.pushSubscribed ? '🔔' : '🔕'}</button><button class="account-btn" id="logoutBtn">Logout</button></span>`;
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) logoutBtn.onclick = signOutUser;
     const notifBtn = document.getElementById('notifBtn');
-    if (notifBtn) notifBtn.onclick = subscribeToPush;
+    if (notifBtn) notifBtn.onclick = togglePush;
   } else {
     row.innerHTML = `<span class="account-label">${t('not_logged_in')}</span><button class="account-btn" id="loginBtnHeader">${t('login_btn')}</button>`;
     const loginBtn = document.getElementById('loginBtnHeader');
@@ -2249,11 +2302,13 @@ async function init(){
   setupGlobalMessageSubscription();
   setupGlobalBookingSubscription();
   setupGlobalNotificationSubscription();
+  checkPushSubscriptionStatus();
   sb.auth.onAuthStateChange((_event, session) => {
     state.user = session ? mapUser(session.user) : null;
     setupGlobalMessageSubscription();
     setupGlobalBookingSubscription();
     setupGlobalNotificationSubscription();
+    checkPushSubscriptionStatus();
     renderAccountRow();
   });
   const [listings, bookings, availabilityBlocks, listingHours, profiles] = await Promise.all([fetchListings(), fetchBookings(), fetchAvailabilityBlocks(), fetchListingHours(), fetchAllProfiles()]);
