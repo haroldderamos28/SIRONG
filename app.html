@@ -23,12 +23,7 @@
   .badge{width:26px; height:26px; border-radius:6px; background:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:700; font-size:17px; color:var(--sky-deep);}
   .brand-name{font-family:'Fraunces',serif; color:#fff; font-size:22px;}
   .brand-sub{font-size:14px; color:#EAF6FB; margin-left:2px;}
-  .fiesta-row{margin-top:8px; display:flex; align-items:center; justify-content:space-between;}
-  .fiesta-label{font-size:14px; color:#EAF6FB;}
-  .toggle{cursor:pointer; width:34px; height:18px; border-radius:20px; background:#3D8FB8; position:relative; flex-shrink:0; transition:background 0.15s;}
-  .toggle.on{background:var(--green);}
-  .toggle-dot{position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#fff; transition:left 0.15s;}
-  .toggle.on .toggle-dot{left:18px;}
+  .b-unverified{font-size:14px; background:#FDE4C8; color:#B5651D; padding:3px 8px; border-radius:20px; font-weight:600;}
   .content{padding:16px; min-height:0; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   .chip{display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:20px; font-size:15px; cursor:pointer; border:1px solid var(--line); background:#fff; color:#4A6673; user-select:none;}
   .chip.active{background:var(--green); color:var(--green-deep); border-color:var(--green);}
@@ -43,7 +38,6 @@
   .card-price small{font-size:14px; font-family:'Inter',sans-serif; color:var(--muted);}
   .badges{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0;}
   .b-instant{font-size:14px; background:var(--green); color:var(--green-deep); padding:3px 8px; border-radius:20px; font-weight:600;}
-  .b-fiesta{font-size:14px; background:#FCEBD2; color:#9A6A1E; padding:3px 8px; border-radius:20px; font-weight:600;}
   .b-feat{font-size:14px; background:var(--cream); color:#4A6673; padding:3px 8px; border-radius:20px; display:inline-flex; align-items:center; gap:4px;}
   .notes{font-size:15px; color:#5C7986; margin:0 0 8px;}
   .btn{cursor:pointer; border:none; border-radius:8px; padding:10px 14px; font-family:'Inter',sans-serif; font-weight:600; font-size:16px; width:100%;}
@@ -179,10 +173,6 @@
       <span id="aboutBtn" style="margin-left:8px; cursor:pointer; color:#fff; display:flex; align-items:center;" title="About Sirong">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
       </span>
-    </div>
-    <div class="fiesta-row">
-      <span class="fiesta-label">Peñafrancia parking mode</span>
-      <span id="fiestaToggle" class="toggle"><span class="toggle-dot"></span></span>
     </div>
     <div class="account-row" id="accountRow"></div>
   </div>
@@ -379,6 +369,7 @@ async function signOutUser(){
   state.profile = null;
   state.unreadBookings = new Set();
   state.pushSubscribed = false;
+  state.profileEditing = null;
   if (globalMessageChannel){ sb.removeChannel(globalMessageChannel); globalMessageChannel = null; }
   if (globalBookingChannel){ sb.removeChannel(globalBookingChannel); globalBookingChannel = null; }
   if (globalNotificationChannel){ sb.removeChannel(globalNotificationChannel); globalNotificationChannel = null; }
@@ -525,9 +516,9 @@ const FEATURES = [
 ];
 
 const SEED_LISTINGS = [
-  { id: "seed-1", address: "Near SM City Naga", price: 20, features: ["covered","gated","cctv"], notes: "Beside the residential gate, ask for kuya guard.", owner: "Jen", instant: true, fiesta: true, payment: "GCash", lat: 13.6218, lng: 123.1948, size_info: "1 SUV/van", photos: null },
-  { id: "seed-2", address: "Naga CBD, near Panganiban Dr.", price: 15, features: ["moto"], notes: "Open driveway, park nose-in.", owner: "Bobby", instant: false, fiesta: false, payment: "Cash", lat: 13.6192, lng: 123.1814, size_info: "Motor lang", photos: null },
-  { id: "seed-3", address: "Near Ateneo de Naga University", price: 15, features: ["gated","moto","cctv"], notes: "Gate closes 10pm, message before then.", owner: "Tin", instant: true, fiesta: false, payment: "GCash or Cash", lat: 13.6304, lng: 123.1867, size_info: "1 sedan/compact car", photos: null },
+  { id: "seed-1", address: "Near SM City Naga", price: 20, features: ["covered","gated","cctv"], notes: "Beside the residential gate, ask for kuya guard.", owner: "Jen", instant: true, payment: "GCash", lat: 13.6218, lng: 123.1948, size_info: "1 SUV/van", photos: null },
+  { id: "seed-2", address: "Naga CBD, near Panganiban Dr.", price: 15, features: ["moto"], notes: "Open driveway, park nose-in.", owner: "Bobby", instant: false, payment: "Cash", lat: 13.6192, lng: 123.1814, size_info: "Motor lang", photos: null },
+  { id: "seed-3", address: "Near Ateneo de Naga University", price: 15, features: ["gated","moto","cctv"], notes: "Gate closes 10pm, message before then.", owner: "Tin", instant: true, payment: "GCash or Cash", lat: 13.6304, lng: 123.1867, size_info: "1 sedan/compact car", photos: null },
 ];
 
 const NAGA_CENTER = [13.6218, 123.1948];
@@ -562,7 +553,6 @@ const TRANSLATIONS = {
     price_per_hour: 'Price per hour (₱)',
     features_label: 'Features',
     instant_book_checkbox: 'Instant book (no approval needed)',
-    fiesta_checkbox: 'Available during Peñafrancia Fiesta',
     access_notes: 'Access notes (optional)',
     preferred_payment: 'Preferred payment',
     availability_calendar: 'Availability calendar',
@@ -679,6 +669,12 @@ const TRANSLATIONS = {
     set_new_password_btn: 'Set new password',
     password_too_short: 'Password must be at least 6 characters',
     password_updated_toast: 'Password updated! You can now log in with your new password.',
+    edit_profile_btn: 'Edit profile',
+    id_document_label: 'ID document',
+    id_upload_hint: 'Only visible to Sirong for verification — never shown to other users.',
+    id_verified_status: 'ID verified ✓',
+    id_pending_status: 'ID submitted, pending review',
+    id_not_submitted_status: 'No ID submitted yet',
     notifications_disabled_toast: 'Notifications turned off.',
   },
   tl: {
@@ -705,7 +701,6 @@ const TRANSLATIONS = {
     price_per_hour: 'Presyo per hour (₱)',
     features_label: 'Features',
     instant_book_checkbox: 'Instant book (walang hintay na approval)',
-    fiesta_checkbox: 'Available during Peñafrancia Fiesta',
     access_notes: 'Access notes (optional)',
     preferred_payment: 'Preferred payment',
     availability_calendar: 'Availability calendar',
@@ -822,6 +817,12 @@ const TRANSLATIONS = {
     set_new_password_btn: 'I-set ang bagong password',
     password_too_short: 'Dapat hindi bababa sa 6 na characters ang password',
     password_updated_toast: 'Na-update ang password! Puwede ka nang mag-login gamit ang bagong password.',
+    edit_profile_btn: 'I-edit ang profile',
+    id_document_label: 'ID document',
+    id_upload_hint: 'Sirong lang ang makakakita nito para sa verification — hindi ito ipapakita sa ibang users.',
+    id_verified_status: 'Verified na ang ID ✓',
+    id_pending_status: 'Naisumite na ang ID, hinihintay ang review',
+    id_not_submitted_status: 'Wala pang naisumiteng ID',
     notifications_disabled_toast: 'Naka-off na ang notifications.',
   },
 };
@@ -979,7 +980,6 @@ let state = {
   chatOtherPartyName: '',
   unreadBookings: new Set(),
   activeFilters: [],
-  fiestaMode: false,
   bookingTarget: null,
   loading: true,
   formPin: null,
@@ -991,6 +991,7 @@ let state = {
   authMode: 'login',
   pendingAction: null,
   pushSubscribed: false,
+  profileEditing: null,
 };
 
 let searchMapInstance = null;
@@ -1018,8 +1019,7 @@ function featureLabel(id){ return t('feature_' + id); }
 
 function renderSearch(){
   let filtered = state.listings
-    .filter(l => state.activeFilters.every(f => l.features.includes(f)))
-    .filter(l => !state.fiestaMode || l.fiesta);
+    .filter(l => state.activeFilters.every(f => l.features.includes(f)));
 
   if (state.userLocation){
     filtered = filtered.map(l => ({ ...l, _dist: (l.lat && l.lng) ? distanceKm(state.userLocation.lat, state.userLocation.lng, l.lat, l.lng) : null }));
@@ -1054,8 +1054,14 @@ function renderSearch(){
         <span class="card-price">₱${l.price}<small>/hr</small></span>
       </div>
       <div class="badges">
+        ${(() => {
+          const ownerProfile = state.profiles.find(p => p.id === l.user_id);
+          const isVerified = ownerProfile && ownerProfile.verified;
+          return isVerified
+            ? `<span class="b-instant">${t('verified_label')}</span>`
+            : `<span class="b-unverified">${t('not_verified_label')}</span>`;
+        })()}
         ${l.instant ? `<span class="b-instant">${t('book_instant')}</span>` : ''}
-        ${l.fiesta ? '<span class="b-fiesta">Fiesta spot</span>' : ''}
         ${l.size_info ? `<span class="size-tag">${l.size_info}</span>` : ''}
         ${l.features.map(fid => `<span class="b-feat">${featureIcon(fid)}${featureLabel(fid)}</span>`).join('')}
       </div>
@@ -1114,7 +1120,6 @@ function initSearchMap(){
 
   const visible = state.listings
     .filter(l => state.activeFilters.every(f => l.features.includes(f)))
-    .filter(l => !state.fiestaMode || l.fiesta)
     .filter(l => l.lat && l.lng);
 
   visible.forEach(l => {
@@ -1220,7 +1225,6 @@ function renderListForm(){
       </div>
     </div>
     <label class="checkline"><input type="checkbox" id="fInstant" ${!e || e.instant ? 'checked' : ''} /> ${t('instant_book_checkbox')}</label>
-    <label class="checkline"><input type="checkbox" id="fFiesta" ${e && e.fiesta ? 'checked' : ''} /> ${t('fiesta_checkbox')}</label>
     <div class="field"><label>${t('access_notes')}</label><input id="fNotes" placeholder="Gate code, landmark, ask for guard" value="${e && e.notes ? e.notes : ''}" /></div>
     <div class="field">
       <label>${t('preferred_payment')}</label>
@@ -1270,14 +1274,44 @@ function renderProfileEditorHtml(){
   const bio = myProfile && myProfile.bio ? myProfile.bio : '';
   const special = myProfile && myProfile.special_requests ? myProfile.special_requests : '';
   const verified = myProfile && myProfile.verified;
+  const idPhoto = myProfile && myProfile.id_photo;
+  const submittedForVerification = myProfile && myProfile.submitted_for_verification;
+
+  if (state.profileEditing == null){
+    const hasData = myProfile && (myProfile.bio || myProfile.avatar_photo || myProfile.special_requests || myProfile.id_photo);
+    state.profileEditing = !hasData;
+  }
+
+  const idStatusText = verified ? t('id_verified_status') : (submittedForVerification ? t('id_pending_status') : t('id_not_submitted_status'));
+
+  const avatarHtml = avatar
+    ? `<img src="${avatar}" style="width:56px; height:56px; border-radius:50%; object-fit:cover; flex-shrink:0;" />`
+    : `<div style="width:56px; height:56px; border-radius:50%; background:var(--sky); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:22px; flex-shrink:0;">${(displayName||'?').charAt(0).toUpperCase()}</div>`;
+
+  if (!state.profileEditing){
+    return `
+      <h2 class="title">${t('my_profile')}</h2>
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+          ${avatarHtml}
+          <div>
+            <p style="font-family:'Fraunces',serif; font-size:16px; color:var(--sky-deep); margin:0;">${displayName}</p>
+            <p class="map-hint" style="margin:2px 0 0;">${verified ? t('verified_label') : t('not_verified_label')}</p>
+          </div>
+        </div>
+        ${bio ? `<p class="notes">${bio}</p>` : ''}
+        ${special ? `<p style="font-size:12px; color:#9A6A1E; background:#FCEBD2; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><strong>${t('special_requests_label')}:</strong> ${special}</p>` : ''}
+        <p class="map-hint" style="margin-bottom:10px;">📄 ${idStatusText}</p>
+        <button class="btn btn-ink" id="editProfileBtn">${t('edit_profile_btn')}</button>
+      </div>
+    `;
+  }
 
   return `
     <h2 class="title">${t('my_profile')}</h2>
     <div class="card">
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-        ${avatar
-          ? `<img src="${avatar}" style="width:56px; height:56px; border-radius:50%; object-fit:cover; flex-shrink:0;" />`
-          : `<div style="width:56px; height:56px; border-radius:50%; background:var(--sky); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:22px; flex-shrink:0;">${(displayName||'?').charAt(0).toUpperCase()}</div>`}
+        ${avatarHtml}
         <div>
           <p style="font-family:'Fraunces',serif; font-size:16px; color:var(--sky-deep); margin:0;">${displayName}</p>
           <p class="map-hint" style="margin:2px 0 0;">${verified ? t('verified_label') : t('not_verified_label')}</p>
@@ -1286,6 +1320,12 @@ function renderProfileEditorHtml(){
       <div class="field"><label>${t('profile_photo')}</label><input class="file-field" id="profileAvatarInput" type="file" accept="image/*" /></div>
       <div class="field"><label>${t('bio_label')}</label><input id="profileBioInput" placeholder="${t('bio_placeholder')}" value="${bio}" /></div>
       <div class="field"><label>${t('special_requests_label')}</label><input id="profileSpecialInput" placeholder="${t('special_requests_placeholder')}" value="${special}" /></div>
+      <div class="field">
+        <label>${t('id_document_label')}</label>
+        <p class="map-hint" style="margin-bottom:6px;">📄 ${idStatusText}</p>
+        <input class="file-field" id="profileIdInput" type="file" accept="image/*" />
+        <p class="map-hint">${t('id_upload_hint')}</p>
+      </div>
       <button class="btn btn-ink" id="saveProfileBtn">${t('save_profile_btn')}</button>
     </div>
   `;
@@ -1432,9 +1472,6 @@ function render(){
     navMySpaces.style.display = isOwner ? 'flex' : 'none';
   }
 
-  const ft = document.getElementById('fiestaToggle');
-  ft.classList.toggle('on', state.fiestaMode);
-
   updateNavDots();
   renderAccountRow();
   attachContentListeners();
@@ -1487,24 +1524,43 @@ function attachContentListeners(){
     const special = document.getElementById('profileSpecialInput').value.trim();
     const avatarInput = document.getElementById('profileAvatarInput');
     const avatarFile = avatarInput && avatarInput.files ? avatarInput.files[0] : null;
+    const idInput = document.getElementById('profileIdInput');
+    const idFile = idInput && idInput.files ? idInput.files[0] : null;
 
     await ensureProfile(state.user);
 
     let avatarDataUrl = null;
-    if (avatarFile){
+    let idDataUrl = null;
+    if (avatarFile || idFile){
       showToast(t('optimizing_photos'));
+    }
+    if (avatarFile){
       avatarDataUrl = await resizeImage(avatarFile, 400);
+    }
+    if (idFile){
+      idDataUrl = await resizeImage(idFile, 1000);
     }
 
     const fields = { bio, special_requests: special };
     if (avatarDataUrl) fields.avatar_photo = avatarDataUrl;
+    if (idDataUrl){
+      fields.id_photo = idDataUrl;
+      fields.submitted_for_verification = true;
+    }
 
     const saved = await updateProfileFields(state.user.id, fields);
     if (saved){
       state.profiles = [...state.profiles.filter(p => p.id !== state.user.id), saved];
       showToast(t('profile_saved'));
+      state.profileEditing = false;
       render();
     }
+  };
+
+  const editProfileBtn = document.getElementById('editProfileBtn');
+  if (editProfileBtn) editProfileBtn.onclick = () => {
+    state.profileEditing = true;
+    render();
   };
 
   document.querySelectorAll('[data-book]').forEach(el => {
@@ -1745,7 +1801,6 @@ function submitListing(){
   const features = Array.from(document.querySelectorAll('[data-formfeat].active')).map(el => el.dataset.formfeat);
   const notes = document.getElementById('fNotes').value.trim();
   const instant = document.getElementById('fInstant').checked;
-  const fiesta = document.getElementById('fFiesta').checked;
   const payment = document.getElementById('fPayment').value;
   const sizeInfo = document.getElementById('fSize').value;
   const fileInput = document.getElementById('fPhoto');
@@ -1754,7 +1809,7 @@ function submitListing(){
 
   async function finish(photos){
     const hasNewPhotos = photos.length > 0;
-    const fields = { address, price, features, notes, owner, instant, fiesta, payment, size_info: sizeInfo || null, lat, lng };
+    const fields = { address, price, features, notes, owner, instant, payment, size_info: sizeInfo || null, lat, lng };
     if (hasNewPhotos) fields.photos = photos;
 
     if (editing){
@@ -2237,11 +2292,6 @@ document.getElementById('bfConfirm').onclick = async () => {
   }
 };
 
-document.getElementById('fiestaToggle').onclick = () => {
-  state.fiestaMode = !state.fiestaMode;
-  render();
-};
-
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.onclick = () => {
     state.tab = btn.dataset.tab;
@@ -2418,6 +2468,13 @@ async function init(){
   state.listingHours = listingHours;
   state.profiles = profiles;
   state.loading = false;
+
+  if (state.user){
+    const myFullProfile = await ensureProfile(state.user);
+    if (myFullProfile){
+      state.profiles = [...state.profiles.filter(p => p.id !== state.user.id), myFullProfile];
+    }
+  }
 
   const rawDeepLink = new URLSearchParams(window.location.search).get('booking');
   const deepLinkBookingId = rawDeepLink ? rawDeepLink.trim().replace(/^["']|["']$/g, '') : null;
