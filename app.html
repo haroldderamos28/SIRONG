@@ -212,8 +212,8 @@
     <div id="bookingHourWrap"></div>
     <div class="field"><input id="bfDate" type="date" /></div>
     <div class="time-row" style="margin-bottom:10px;">
-      <input id="bfStart" type="time" />
-      <input id="bfEnd" type="time" />
+      <input id="bfStart" type="time" step="1800" />
+      <input id="bfEnd" type="time" step="1800" />
     </div>
     <p class="pay-note" id="bfPay">Payment: GCash</p>
     <p class="safety-note" id="bookingSafetyNote">Sirong connects you with the space owner directly — please confirm the spot and access details with them before paying.</p>
@@ -614,6 +614,7 @@ const TRANSLATIONS = {
     cannot_book_past_date: "You can't book a date that has already passed.",
     cannot_book_past_time: "That time has already passed today, please pick a later time.",
     end_time_after_start: "End time must be after the start time.",
+    minimum_booking_duration: "Minimum booking time is 30 minutes.",
     booking_instant_confirmed: 'Booked instantly — confirmed',
     booking_request_sent: 'Booking request sent, waiting for approval',
     report_link: 'Report a problem',
@@ -765,6 +766,7 @@ const TRANSLATIONS = {
     cannot_book_past_date: 'Hindi mo pwedeng i-book ang petsang nakaraan na.',
     cannot_book_past_time: 'Nakaraan na ang oras na iyon ngayong araw, pumili ng mas huling oras.',
     end_time_after_start: 'Dapat mas huli ang end time kaysa sa start time.',
+    minimum_booking_duration: 'Minimum na 30 minuto ang booking time.',
     booking_instant_confirmed: 'Naka-book agad — instant confirm',
     booking_request_sent: 'Booking request sent, hintayin approval',
     report_link: 'Report a problem',
@@ -2361,12 +2363,16 @@ document.getElementById('bfConfirm').onclick = async () => {
     showToast(t('end_time_after_start'));
     return;
   }
+  if (endMinutesTotal - startMinutesTotal < 30){
+    showToast(t('minimum_booking_duration'));
+    return;
+  }
 
   if (!isRangeAvailable(state.bookingTarget.id, date, start, end)){
     showToast(t('time_closed'));
     return;
   }
-  const hours = Math.max(1, Number(end.split(':')[0]) - Number(start.split(':')[0]));
+  const hours = (endMinutesTotal - startMinutesTotal) / 60;
   const booking = {
     id: uid(), listingId: state.bookingTarget.id, address: state.bookingTarget.address,
     renter: name, date, start, end, total: hours * state.bookingTarget.price, instant: state.bookingTarget.instant,
