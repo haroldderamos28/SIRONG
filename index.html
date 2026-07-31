@@ -36,6 +36,7 @@
   .hero-text{flex:1; min-width:280px;}
   .hero-visual{flex:1; min-width:260px;}
   .hero-visual svg{width:100%; height:auto; display:block;}
+  .hero-visual img{width:100%; height:auto; display:block;}
   .eyebrow{font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); font-weight:600;}
   h1{font-family:'Fraunces',serif; font-weight:600; font-size:44px; line-height:1.12; color:var(--sky-deep); margin:14px 0 18px; max-width:640px;}
   h1 em{font-style:italic; color:var(--green-deep); font-weight:500;}
@@ -113,6 +114,8 @@
 
   .showcase{background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px; margin-bottom:56px;}
   .showcase img{width:100%; max-width:420px; height:auto; border-radius:10px; display:block; margin:0 auto 18px;}
+  .showcase-visual{max-width:500px; margin:0 auto;}
+  .showcase-visual svg{width:100%; height:auto; display:block; margin:0 auto 18px;}
   .showcase-caption{max-width:600px;}
   .showcase-caption h2{font-family:'Fraunces',serif; font-weight:600; font-size:26px; color:var(--sky-deep); margin-bottom:8px;}
   .showcase-caption p{color:var(--muted); font-size:16px;}
@@ -160,7 +163,14 @@
         </div>
       </div>
       <div class="hero-visual">
-        <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A happy space owner earning from their driveway and a happy driver who just parked, connected by a dashed line with a heart badge">
+        <img src="sirong-logo.png" alt="Sirong logo — park finder for Naga City" />
+      </div>
+    </div>
+  </header>
+
+  <div class="showcase">
+    <div class="showcase-visual">
+      <svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A happy space owner earning from their driveway and a happy driver who just parked, connected by a dashed line with a heart badge">
           <defs>
             <linearGradient id="skinA" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stop-color="#E0AD7E"/>
@@ -263,12 +273,7 @@
           <rect x="612" y="203" width="16" height="24" rx="3" fill="#fff" stroke="#D6E9F0"/>
           <path d="M616,215l3,3 6,-8" fill="none" stroke="#1F6B44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </div>
     </div>
-  </header>
-
-  <div class="showcase">
-    <img src="sirong-logo.png" alt="Sirong logo — park finder for Naga City" />
     <div class="showcase-caption">
       <h2 id="i18n-showcase-h2">This is Sirong.</h2>
       <p id="i18n-showcase-p">Find a spot near you in seconds, or list your own driveway and start earning — the same easy experience, built for drivers and space owners across Bicol.</p>
