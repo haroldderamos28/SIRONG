@@ -896,6 +896,12 @@ async function setBookingCommissionCollected(id, collected){
   return data && data[0] ? rowToBooking(data[0]) : null;
 }
 
+async function resetAllCommissionTracking(){
+  const { data, error } = await sb.from('bookings').update({ commission_collected: false }).eq('status', 'confirmed').select();
+  if (error){ console.error(error); showToast(t('error_update_generic')); return null; }
+  return data ? data.map(rowToBooking) : [];
+}
+
 async function fetchListings(){
   const { data, error } = await sb.from('listings').select('*').order('created_at', { ascending: false });
   if (error){ console.error(error); showToast(t('error_load_listings')); return []; }
@@ -936,6 +942,22 @@ async function deleteBookingRow(id){
   const { error } = await sb.from('bookings').delete().eq('id', id);
   if (error){ console.error(error); showToast(t('error_cancel_generic')); return false; }
   return true;
+}
+
+async function deleteAllBookingsForTesting(){
+  // Matches every row (no booking will ever have this all-zero id) — this is
+  // the standard way to do a "delete all" with Supabase, which requires a filter.
+  const { error } = await sb.from('bookings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  if (error){ console.error(error); showToast('Could not clear bookings, please try again'); return false; }
+  return true;
+}
+
+async function refreshAdminData(){
+  const [bookings, listings] = await Promise.all([fetchBookings(), fetchListings()]);
+  state.bookings = bookings;
+  state.listings = listings;
+  showToast('Refreshed');
+  render();
 }
 
 async function updateBookingStatus(id, status){
@@ -1503,7 +1525,15 @@ function renderAdminDashboard(){
     return db.localeCompare(da);
   });
 
-  let html = `<h2 class="title">Admin — income overview</h2>`;
+  let html = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
+      <h2 class="title" style="margin:0;">Admin — income overview</h2>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="refreshAdminBtn" style="font-size:13px; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:#fff; color:var(--sky-deep); cursor:pointer;">↻ Refresh</button>
+        <button type="button" id="resetCommissionBtn" style="font-size:13px; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:#fff; color:var(--muted); cursor:pointer;">Recalibrate</button>
+      </div>
+    </div>
+  `;
 
   html += `
     <div class="card" style="text-align:center;">
@@ -1571,6 +1601,14 @@ function renderAdminDashboard(){
       `;
     }).join('');
   }
+
+  html += `
+    <div style="margin-top:28px; padding-top:16px; border-top:2px dashed #F6D9D6;">
+      <p style="font-size:12px; font-weight:600; color:#A8362A; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Testing zone</p>
+      <p class="map-hint" style="margin-bottom:8px;">Only use this while testing. It permanently deletes every booking record — including confirmed ones. There's no undo.</p>
+      <button type="button" id="deleteAllBookingsBtn" style="width:100%; font-size:14px; padding:10px; border-radius:8px; border:1px solid #F6D9D6; background:#F6D9D6; color:#A8362A; font-weight:600; cursor:pointer;">Delete ALL bookings (testing only)</button>
+    </div>
+  `;
 
   return html;
 }
@@ -1975,6 +2013,39 @@ function attachContentListeners(){
       }
     };
   });
+
+  const resetCommissionBtn = document.getElementById('resetCommissionBtn');
+  if (resetCommissionBtn) resetCommissionBtn.onclick = async () => {
+    const confirmed = window.confirm('Reset all commission tracking back to "owed"? Booking history stays — only the collected/owed status resets. This cannot be undone.');
+    if (!confirmed) return;
+    const updatedBookings = await resetAllCommissionTracking();
+    if (updatedBookings){
+      const updatedIds = new Set(updatedBookings.map(b => b.id));
+      state.bookings = state.bookings.map(b => updatedIds.has(b.id) ? updatedBookings.find(u => u.id === b.id) : b);
+      showToast('Commission tracking reset');
+      render();
+    }
+  };
+
+  const refreshAdminBtn = document.getElementById('refreshAdminBtn');
+  if (refreshAdminBtn) refreshAdminBtn.onclick = refreshAdminData;
+
+  const deleteAllBookingsBtn = document.getElementById('deleteAllBookingsBtn');
+  if (deleteAllBookingsBtn) deleteAllBookingsBtn.onclick = async () => {
+    const firstConfirm = window.confirm('This will permanently delete EVERY booking on the platform, including real confirmed ones. Are you sure you are still in testing and want to continue?');
+    if (!firstConfirm) return;
+    const typed = window.prompt('Type DELETE to confirm — this cannot be undone.');
+    if (typed !== 'DELETE'){
+      showToast('Cancelled — no changes made');
+      return;
+    }
+    const ok = await deleteAllBookingsForTesting();
+    if (ok){
+      state.bookings = [];
+      showToast('All bookings deleted');
+      render();
+    }
+  };
 }
 
 function submitListing(){
