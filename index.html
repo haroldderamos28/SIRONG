@@ -59,6 +59,8 @@
   .pair-card .tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:4px 10px; border-radius:20px; margin-bottom:14px;}
   .tag-driver{background:#E4F2FA; color:var(--sky-deep);}
   .tag-owner{background:#E4F8EB; color:var(--green-deep);}
+  .trust-note{background:#FCEBD2; color:#9A6A1E; border-radius:14px; padding:20px 24px; margin-top:20px; font-size:15px; line-height:1.6;}
+  .trust-note strong{color:#7A4E12;}
   .pair-card h3{font-family:'Fraunces',serif; font-size:20px; color:var(--ink); margin-bottom:10px; font-weight:600;}
   .pair-card p{color:var(--muted); font-size:14px;}
 
@@ -100,7 +102,7 @@
   .fcard p{font-size:13px; color:var(--muted);}
 
   .showcase{background:#fff; border:1px solid var(--line); border-radius:16px; padding:24px; margin-bottom:56px;}
-  .showcase img{width:100%; border-radius:10px; display:block; margin-bottom:18px;}
+  .showcase img{width:100%; max-height:280px; object-fit:cover; border-radius:10px; display:block; margin-bottom:18px;}
   .showcase-caption{max-width:600px;}
   .showcase-caption h2{font-family:'Fraunces',serif; font-weight:600; font-size:26px; color:var(--sky-deep); margin-bottom:8px;}
   .showcase-caption p{color:var(--muted); font-size:14px;}
@@ -256,6 +258,33 @@
       <p id="i18n-showcase-p">Find a spot near you in seconds, or list your own driveway and start earning — the same easy experience, built for drivers and space owners across Bicol.</p>
     </div>
   </div>
+
+  <div class="ticket-divider"></div>
+
+  <section id="who-its-for">
+    <div class="section-head">
+      <p class="eyebrow" id="i18n-who-eyebrow">Who it's for</p>
+      <h2 id="i18n-who-h2">Sirong is built for two kinds of people.</h2>
+    </div>
+
+    <div class="pair">
+      <div class="pair-card">
+        <span class="tag tag-driver" id="i18n-who-tag1">For car owners</span>
+        <h3 id="i18n-who-h3-1">Real peace of mind, every time you park.</h3>
+        <p id="i18n-who-p1">Circling the block, risking a ticket, or leaving your car on the side of the road isn't just inconvenient — it's stressful. Sirong connects you with secured spots that protect your car, even in areas that don't look congested but still leave you uneasy about where you left it.</p>
+      </div>
+      <div class="pair-card">
+        <span class="tag tag-owner" id="i18n-who-tag2">For lot owners</span>
+        <h3 id="i18n-who-h3-2">Earn from your space, and protect someone's car while you're at it.</h3>
+        <p id="i18n-who-p2">List your unused driveway or garage and start earning from it. You're not just making extra income — you're giving a fellow driver a safer place to park, away from scratches, dents, and the risks of the street.</p>
+      </div>
+    </div>
+
+    <div class="trust-note">
+      <strong id="i18n-who-trust-title">Why book through the app?</strong>
+      <span id="i18n-who-trust-body"> Every booking on Sirong goes through real ID verification — so you're never trusting a stranger blindly. Arranging parking outside the app skips that protection entirely, putting both your car and your money at risk.</span>
+    </div>
+  </section>
 
   <div class="ticket-divider"></div>
 
@@ -419,6 +448,16 @@
       'i18n-hero-cta2': 'Our mission',
       'i18n-showcase-h2': 'This is Sirong.',
       'i18n-showcase-p': 'Find a spot near you in seconds, or list your own driveway and start earning — the same easy experience, built for drivers and space owners across Bicol.',
+      'i18n-who-eyebrow': "Who it's for",
+      'i18n-who-h2': 'Sirong is built for two kinds of people.',
+      'i18n-who-tag1': 'For car owners',
+      'i18n-who-h3-1': 'Real peace of mind, every time you park.',
+      'i18n-who-p1': "Circling the block, risking a ticket, or leaving your car on the side of the road isn't just inconvenient — it's stressful. Sirong connects you with secured spots that protect your car, even in areas that don't look congested but still leave you uneasy about where you left it.",
+      'i18n-who-tag2': 'For lot owners',
+      'i18n-who-h3-2': "Earn from your space, and protect someone's car while you're at it.",
+      'i18n-who-p2': "List your unused driveway or garage and start earning from it. You're not just making extra income — you're giving a fellow driver a safer place to park, away from scratches, dents, and the risks of the street.",
+      'i18n-who-trust-title': 'Why book through the app?',
+      'i18n-who-trust-body': " Every booking on Sirong goes through real ID verification — so you're never trusting a stranger blindly. Arranging parking outside the app skips that protection entirely, putting both your car and your money at risk.",
       'i18n-mission-eyebrow': 'Why we exist',
       'i18n-mission-h2': 'Two problems, one fix.',
       'i18n-mission-intro': 'Across Bicol, drivers circle the block looking for somewhere — anywhere — to leave their car, while residents a few houses down have a driveway or garage slot sitting empty all day. Sirong exists to close that gap.',
@@ -476,6 +515,16 @@
       'i18n-hero-cta2': 'Aming misyon',
       'i18n-showcase-h2': 'Ito ang Sirong.',
       'i18n-showcase-p': 'Maghanap ng spot malapit sa iyo sa ilang segundo lang, o i-list ang sarili mong driveway at magsimulang kumita — parehong madaling karanasan, ginawa para sa mga drivers at space owners sa buong Bicol.',
+      'i18n-who-eyebrow': 'Para kanino ito',
+      'i18n-who-h2': 'Ginawa ang Sirong para sa dalawang klase ng tao.',
+      'i18n-who-tag1': 'Para sa mga may sasakyan',
+      'i18n-who-h3-1': 'Tunay na peace of mind sa bawat pagpark.',
+      'i18n-who-p1': 'Ang pag-ikot sa kalye, pagrisgo sa ticket, o pag-iwan ng sasakyan sa gilid ng kalsada ay hindi lang nakakaabala — nakakastress talaga. Ikinokonekta ka ng Sirong sa mga secured na spot na nagpoprotekta sa sasakyan mo, kahit sa mga lugar na mukhang hindi naman masikip pero pa rin nagpapabalisa kung saan mo iniwan ang sasakyan mo.',
+      'i18n-who-tag2': 'Para sa mga may-ari ng lote',
+      'i18n-who-h3-2': 'Kumita mula sa espasyo mo, habang pinoprotektahan mo rin ang sasakyan ng iba.',
+      'i18n-who-p2': 'I-list ang hindi ginagamit mong driveway o garahe at magsimulang kumita. Hindi lang extra income ang ibinibigay mo — nagbibigay ka rin ng mas ligtas na lugar sa isang kapwa driver, malayo sa gasgas, dents, at panganib ng kalye.',
+      'i18n-who-trust-title': 'Bakit dapat sa loob ng app mag-book?',
+      'i18n-who-trust-body': ' Bawat booking sa Sirong ay dumadaan sa tunay na ID verification — kaya hindi ka basta-basta nagtitiwala sa isang stranger. Ang pag-aayos ng parking sa labas ng app ay lumalaktaw sa proteksyong iyon, na naglalagay sa panganib ng sasakyan mo at pera mo.',
       'i18n-mission-eyebrow': 'Bakit kami umiiral',
       'i18n-mission-h2': 'Dalawang problema, isang solusyon.',
       'i18n-mission-intro': 'Sa buong Bicol, umiikot ang mga drivers sa kalye naghahanap ng kahit saan para maiwan ang sasakyan, habang ang mga residente naman ay may driveway o garage na walang laman buong araw. Umiiral ang Sirong para tapusin ang gap na iyon.',
