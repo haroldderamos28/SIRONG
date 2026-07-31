@@ -54,6 +54,16 @@
   .section-head h2{font-family:'Fraunces',serif; font-weight:600; font-size:30px; color:var(--sky-deep); margin-top:8px;}
   .section-head p{color:var(--muted); font-size:15px; margin-top:10px;}
 
+  .who-head-grid{display:flex; align-items:center; gap:32px; margin-bottom:32px; flex-wrap:wrap;}
+  .who-head-text{flex:1; min-width:260px;}
+  .who-head-text h2{font-family:'Fraunces',serif; font-weight:600; font-size:30px; color:var(--sky-deep); margin-top:8px;}
+  .who-head-img{flex:1; min-width:280px;}
+  .who-head-img img{
+    width:100%; height:auto; display:block; border-radius:14px;
+    border:1px solid var(--line);
+    box-shadow:0 16px 32px -16px rgba(46,110,142,0.35);
+  }
+
   .pair{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
   .pair-card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px;}
   .pair-card .tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:4px 10px; border-radius:20px; margin-bottom:14px;}
@@ -115,6 +125,8 @@
     .hero-visual{order:-1; max-width:320px;}
     .feature-top{flex-direction:column;}
     .feature-strip{grid-template-columns:1fr;}
+    .who-head-grid{flex-direction:column;}
+    .who-head-img{order:-1;}
   }
 </style>
 </head>
@@ -262,9 +274,14 @@
   <div class="ticket-divider"></div>
 
   <section id="who-its-for">
-    <div class="section-head">
-      <p class="eyebrow" id="i18n-who-eyebrow">Who it's for</p>
-      <h2 id="i18n-who-h2">Sirong is built for two kinds of people.</h2>
+    <div class="who-head-grid">
+      <div class="who-head-text">
+        <p class="eyebrow" id="i18n-who-eyebrow">Who it's for</p>
+        <h2 id="i18n-who-h2">Sirong is built for two kinds of people.</h2>
+      </div>
+      <div class="who-head-img">
+        <img src="who-its-for.png" alt="Sirong app — for car owners finding parking spaces, and for lot owners earning from unused space" />
+      </div>
     </div>
 
     <div class="pair">
