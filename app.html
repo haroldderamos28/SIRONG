@@ -61,7 +61,7 @@
   .modal-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
   .modal-top p{font-family:'Fraunces',serif; font-size:18px; margin:0; color:var(--sky-deep);}
   .time-row{display:flex; gap:8px;}
-  .time-row input{flex:1;}
+  .time-row input, .time-row select{flex:1; box-sizing:border-box; padding:9px 10px; border-radius:7px; border:1px solid var(--line); font-family:'Inter',sans-serif; font-size:16px; background:#fff;}
   .pay-note{font-size:14px; color:var(--muted); margin:0;}
   .safety-note{font-size:14px; color:#9A6A1E; background:#FCEBD2; border-radius:8px; padding:8px 10px; margin:8px 0 0;}
 
@@ -212,8 +212,8 @@
     <div id="bookingHourWrap"></div>
     <div class="field"><input id="bfDate" type="date" /></div>
     <div class="time-row" style="margin-bottom:10px;">
-      <input id="bfStart" type="time" step="1800" />
-      <input id="bfEnd" type="time" step="1800" />
+      <select id="bfStart"><option value="">Start time</option><option value="00:00">12:00 AM</option><option value="00:30">12:30 AM</option><option value="01:00">1:00 AM</option><option value="01:30">1:30 AM</option><option value="02:00">2:00 AM</option><option value="02:30">2:30 AM</option><option value="03:00">3:00 AM</option><option value="03:30">3:30 AM</option><option value="04:00">4:00 AM</option><option value="04:30">4:30 AM</option><option value="05:00">5:00 AM</option><option value="05:30">5:30 AM</option><option value="06:00">6:00 AM</option><option value="06:30">6:30 AM</option><option value="07:00">7:00 AM</option><option value="07:30">7:30 AM</option><option value="08:00">8:00 AM</option><option value="08:30">8:30 AM</option><option value="09:00">9:00 AM</option><option value="09:30">9:30 AM</option><option value="10:00">10:00 AM</option><option value="10:30">10:30 AM</option><option value="11:00">11:00 AM</option><option value="11:30">11:30 AM</option><option value="12:00">12:00 PM</option><option value="12:30">12:30 PM</option><option value="13:00">1:00 PM</option><option value="13:30">1:30 PM</option><option value="14:00">2:00 PM</option><option value="14:30">2:30 PM</option><option value="15:00">3:00 PM</option><option value="15:30">3:30 PM</option><option value="16:00">4:00 PM</option><option value="16:30">4:30 PM</option><option value="17:00">5:00 PM</option><option value="17:30">5:30 PM</option><option value="18:00">6:00 PM</option><option value="18:30">6:30 PM</option><option value="19:00">7:00 PM</option><option value="19:30">7:30 PM</option><option value="20:00">8:00 PM</option><option value="20:30">8:30 PM</option><option value="21:00">9:00 PM</option><option value="21:30">9:30 PM</option><option value="22:00">10:00 PM</option><option value="22:30">10:30 PM</option><option value="23:00">11:00 PM</option><option value="23:30">11:30 PM</option></select>
+      <select id="bfEnd"><option value="">End time</option><option value="00:00">12:00 AM</option><option value="00:30">12:30 AM</option><option value="01:00">1:00 AM</option><option value="01:30">1:30 AM</option><option value="02:00">2:00 AM</option><option value="02:30">2:30 AM</option><option value="03:00">3:00 AM</option><option value="03:30">3:30 AM</option><option value="04:00">4:00 AM</option><option value="04:30">4:30 AM</option><option value="05:00">5:00 AM</option><option value="05:30">5:30 AM</option><option value="06:00">6:00 AM</option><option value="06:30">6:30 AM</option><option value="07:00">7:00 AM</option><option value="07:30">7:30 AM</option><option value="08:00">8:00 AM</option><option value="08:30">8:30 AM</option><option value="09:00">9:00 AM</option><option value="09:30">9:30 AM</option><option value="10:00">10:00 AM</option><option value="10:30">10:30 AM</option><option value="11:00">11:00 AM</option><option value="11:30">11:30 AM</option><option value="12:00">12:00 PM</option><option value="12:30">12:30 PM</option><option value="13:00">1:00 PM</option><option value="13:30">1:30 PM</option><option value="14:00">2:00 PM</option><option value="14:30">2:30 PM</option><option value="15:00">3:00 PM</option><option value="15:30">3:30 PM</option><option value="16:00">4:00 PM</option><option value="16:30">4:30 PM</option><option value="17:00">5:00 PM</option><option value="17:30">5:30 PM</option><option value="18:00">6:00 PM</option><option value="18:30">6:30 PM</option><option value="19:00">7:00 PM</option><option value="19:30">7:30 PM</option><option value="20:00">8:00 PM</option><option value="20:30">8:30 PM</option><option value="21:00">9:00 PM</option><option value="21:30">9:30 PM</option><option value="22:00">10:00 PM</option><option value="22:30">10:30 PM</option><option value="23:00">11:00 PM</option><option value="23:30">11:30 PM</option></select>
     </div>
     <p class="pay-note" id="bfPay">Payment: GCash</p>
     <p class="safety-note" id="bookingSafetyNote">Sirong connects you with the space owner directly — please confirm the spot and access details with them before paying.</p>
@@ -615,6 +615,7 @@ const TRANSLATIONS = {
     cannot_book_past_time: "That time has already passed today, please pick a later time.",
     end_time_after_start: "End time must be after the start time.",
     minimum_booking_duration: "Minimum booking time is 30 minutes.",
+    invalid_time_increment: "Please pick times on the hour or half hour (e.g. 4:00 or 4:30).",
     booking_instant_confirmed: 'Booked instantly — confirmed',
     booking_request_sent: 'Booking request sent, waiting for approval',
     report_link: 'Report a problem',
@@ -767,6 +768,7 @@ const TRANSLATIONS = {
     cannot_book_past_time: 'Nakaraan na ang oras na iyon ngayong araw, pumili ng mas huling oras.',
     end_time_after_start: 'Dapat mas huli ang end time kaysa sa start time.',
     minimum_booking_duration: 'Minimum na 30 minuto ang booking time.',
+    invalid_time_increment: 'Pumili ng oras na buong oras o kalahating oras (hal. 4:00 o 4:30).',
     booking_instant_confirmed: 'Naka-book agad — instant confirm',
     booking_request_sent: 'Booking request sent, hintayin approval',
     report_link: 'Report a problem',
@@ -2357,6 +2359,12 @@ document.getElementById('bfConfirm').onclick = async () => {
 
   const [startH2, startM2] = start.split(':').map(Number);
   const [endH2, endM2] = end.split(':').map(Number);
+
+  if (startM2 % 30 !== 0 || endM2 % 30 !== 0){
+    showToast(t('invalid_time_increment'));
+    return;
+  }
+
   const startMinutesTotal = startH2 * 60 + startM2;
   const endMinutesTotal = endH2 * 60 + endM2;
   if (endMinutesTotal <= startMinutesTotal){
