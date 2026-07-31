@@ -613,6 +613,7 @@ const TRANSLATIONS = {
     time_closed: 'That time is closed, please pick another time.',
     cannot_book_past_date: "You can't book a date that has already passed.",
     cannot_book_past_time: "That time has already passed today, please pick a later time.",
+    end_time_after_start: "End time must be after the start time.",
     booking_instant_confirmed: 'Booked instantly — confirmed',
     booking_request_sent: 'Booking request sent, waiting for approval',
     report_link: 'Report a problem',
@@ -763,6 +764,7 @@ const TRANSLATIONS = {
     time_closed: 'Naka-close ang space sa oras na iyon, pumili ng ibang oras.',
     cannot_book_past_date: 'Hindi mo pwedeng i-book ang petsang nakaraan na.',
     cannot_book_past_time: 'Nakaraan na ang oras na iyon ngayong araw, pumili ng mas huling oras.',
+    end_time_after_start: 'Dapat mas huli ang end time kaysa sa start time.',
     booking_instant_confirmed: 'Naka-book agad — instant confirm',
     booking_request_sent: 'Booking request sent, hintayin approval',
     report_link: 'Report a problem',
@@ -2349,6 +2351,15 @@ document.getElementById('bfConfirm').onclick = async () => {
       showToast(t('cannot_book_past_time'));
       return;
     }
+  }
+
+  const [startH2, startM2] = start.split(':').map(Number);
+  const [endH2, endM2] = end.split(':').map(Number);
+  const startMinutesTotal = startH2 * 60 + startM2;
+  const endMinutesTotal = endH2 * 60 + endM2;
+  if (endMinutesTotal <= startMinutesTotal){
+    showToast(t('end_time_after_start'));
+    return;
   }
 
   if (!isRangeAvailable(state.bookingTarget.id, date, start, end)){
