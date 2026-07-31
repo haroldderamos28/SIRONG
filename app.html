@@ -1939,7 +1939,13 @@ function renderBookingHoursHtml(listingId){
   if (!state.bookingSelectedDate) return `<p class="map-hint" style="margin:8px 0;">${t('pick_date_see_hours')}</p>`;
   const row = state.listingHours.find(h => h.listing_id === listingId && h.hour_date === state.bookingSelectedDate);
   const hours = row ? row.hours : Array(24).fill(true);
-  const cells = hours.map((open,i) => `<div class="hour-cell ${open?'open':'closed'}">${HOUR_LABELS[i]}</div>`).join('');
+  const isToday = state.bookingSelectedDate === todayDateKey();
+  const currentHour = isToday ? new Date().getHours() : -1;
+  const cells = hours.map((open,i) => {
+    const isPastHour = isToday && i < currentHour;
+    const effectiveOpen = open && !isPastHour;
+    return `<div class="hour-cell ${effectiveOpen?'open':'closed'}">${HOUR_LABELS[i]}</div>`;
+  }).join('');
   return `
     <p class="map-hint" style="margin:8px 0 6px;">${t('availability_for')} ${state.bookingSelectedDate} ${t('open_green')}:</p>
     <div class="hour-grid">${cells}</div>
