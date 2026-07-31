@@ -1,0 +1,38 @@
+# Keeps your Supabase free-tier project from auto-pausing due to inactivity.
+#
+# WHAT THIS DOES
+# Supabase pauses free projects after ~7 days with no database activity.
+# This workflow runs automatically every 3 days and makes one small,
+# harmless read request to your database — just enough to count as
+# "activity" and reset the inactivity timer. It doesn't change any data.
+#
+# SETUP (one-time)
+# 1. In your SIRONG GitHub repo, create this exact file path:
+#      .github/workflows/keep-alive.yml
+#    (GitHub Actions only looks for workflows in that specific folder.)
+# 2. Paste this entire file's contents into it.
+# 3. Commit it. That's it — no secrets or extra setup needed, since the
+#    key used here is the same public "anon" key already visible in your
+#    app.html source (it's a read-only, publishable key by design).
+#
+# You can check it ran by going to your repo's "Actions" tab on GitHub —
+# you'll see "Keep Supabase Alive" runs listed every 3 days.
+
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every 3rd day. Well within the 7-day pause window.
+    - cron: "0 0 */3 * *"
+  workflow_dispatch: {} # lets you manually trigger a run from the Actions tab too
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          curl --fail --silent --show-error \
+            "https://meawvaorrillebhkxgew.supabase.co/rest/v1/listings?select=id&limit=1" \
+            -H "apikey: sb_publishable_w7csw-kv0LdflWDPikkp3Q_NcbqESfM" \
+            -H "Authorization: Bearer sb_publishable_w7csw-kv0LdflWDPikkp3Q_NcbqESfM"
