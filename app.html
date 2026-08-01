@@ -561,6 +561,12 @@ const TRANSLATIONS = {
     cancel_edit: '← Cancel edit',
     logged_in_as: 'Logged in as',
     address_landmark: 'Address / landmark',
+    street_label: 'Street',
+    street_placeholder: 'e.g. Panganiban Drive',
+    block_lot_label: 'Block & Lot / House No. (optional)',
+    block_lot_placeholder: 'e.g. Blk 5 Lot 12',
+    landmark_label: 'Landmark / nearby place (optional)',
+    landmark_placeholder: 'e.g. Near SM Naga, beside the chapel',
     pin_exact_location: 'Pin the exact location',
     click_map_hint: 'Click the map to mark your space, or use the button.',
     use_my_location: '📍 Use my current location',
@@ -714,6 +720,12 @@ const TRANSLATIONS = {
     cancel_edit: '← Kanselahin ang edit',
     logged_in_as: 'Naka-login bilang',
     address_landmark: 'Address / landmark',
+    street_label: 'Kalye',
+    street_placeholder: 'hal. Panganiban Drive',
+    block_lot_label: 'Block & Lot / House No. (optional)',
+    block_lot_placeholder: 'hal. Blk 5 Lot 12',
+    landmark_label: 'Landmark / malapit na lugar (optional)',
+    landmark_placeholder: 'hal. Malapit sa SM Naga, tabi ng chapel',
     pin_exact_location: 'Pin ang eksaktong lokasyon',
     click_map_hint: 'I-click ang mapa para markahan ang space mo, o gamitin ang button.',
     use_my_location: '📍 Use my current location',
@@ -1284,7 +1296,9 @@ function renderListForm(){
     <h2 class="title">${e ? t('edit_listing_title') : t('new_listing_title')}</h2>
     ${e ? `<button type="button" class="report-link" id="cancelEdit">${t('cancel_edit')}</button>` : ''}
     <p class="map-hint">${t('logged_in_as')} <strong>${state.user ? state.user.displayName : ''}</strong></p>
-    <div class="field"><label>${t('address_landmark')}</label><input id="fAddress" placeholder="Near SM Naga" value="${e ? e.address : (state.pendingOwnerArea || '')}" /></div>
+    <div class="field"><label>${t('street_label')}</label><input id="fStreet" placeholder="${t('street_placeholder')}" value="${e ? (e.street || e.address) : (state.pendingOwnerArea || '')}" /></div>
+    <div class="field"><label>${t('block_lot_label')}</label><input id="fBlockLot" placeholder="${t('block_lot_placeholder')}" value="${e && e.blockLot ? e.blockLot : ''}" /></div>
+    <div class="field"><label>${t('landmark_label')}</label><input id="fLandmark" placeholder="${t('landmark_placeholder')}" value="${e && e.landmark ? e.landmark : ''}" /></div>
     <div class="field">
       <label>${t('pin_exact_location')}</label>
       <p class="map-hint">${t('click_map_hint')}</p>
@@ -2063,9 +2077,16 @@ function submitListing(){
   if (!state.user){ showToast(t('login_first')); return; }
   const editing = state.editingListing;
   const owner = state.user.displayName;
-  const address = document.getElementById('fAddress').value.trim();
+  const street = document.getElementById('fStreet').value.trim();
+  const blockLot = document.getElementById('fBlockLot').value.trim();
+  const landmark = document.getElementById('fLandmark').value.trim();
+  const address = [
+    street,
+    blockLot,
+    landmark ? `(near ${landmark})` : ''
+  ].filter(Boolean).join(', ').replace(/,\s*\(/, ' (');
   const price = Number(document.getElementById('fPrice').value);
-  if (!address || !price) { showToast(t('complete_address_price')); return; }
+  if (!street || !price) { showToast(t('complete_address_price')); return; }
   if (!state.formPin) { showToast(t('pin_location_first')); return; }
   const features = Array.from(document.querySelectorAll('[data-formfeat].active')).map(el => el.dataset.formfeat);
   const notes = document.getElementById('fNotes').value.trim();
