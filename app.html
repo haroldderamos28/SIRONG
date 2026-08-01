@@ -692,6 +692,7 @@ const TRANSLATIONS = {
     cannot_book_own_listing: "You can't book your own listing.",
     status_pending: 'Pending approval', status_confirmed: 'Confirmed', status_declined: 'Declined',
     accept_btn: 'Accept', decline_btn: 'Decline',
+    accept_booking_warning: 'By confirming this booking, you confirm you have been (or will be) paid by the renter. Sirong\'s commission fee applies to this booking. Please make sure payment has been received before accepting.',
     booking_accepted_toast: 'Your booking was accepted!',
     booking_declined_toast: 'Your booking was declined.',
     error_status_update: "Couldn't update booking status, please try again",
@@ -857,6 +858,7 @@ const TRANSLATIONS = {
     cannot_book_own_listing: 'Hindi mo pwedeng i-book ang sarili mong listing.',
     status_pending: 'Hinihintay ang approval', status_confirmed: 'Confirmed na', status_declined: 'Tinanggihan',
     accept_btn: 'Tanggapin', decline_btn: 'Tanggihan',
+    accept_booking_warning: 'Sa pag-confirm ng booking na ito, kinukumpirma mong na-bayaran ka na (o babayaran ka) ng renter. May commission fee ang Sirong na applicable sa booking na ito. Paki-siguro na natanggap mo na ang bayad bago tanggapin.',
     booking_accepted_toast: 'Na-accept na ang booking mo!',
     booking_declined_toast: 'Na-decline ang booking mo.',
     error_status_update: 'Hindi na-update ang status, subukan ulit',
@@ -1767,6 +1769,8 @@ function attachContentListeners(){
 
   document.querySelectorAll('[data-accept-booking]').forEach(el => {
     el.onclick = async () => {
+      const confirmed = window.confirm(t('accept_booking_warning'));
+      if (!confirmed) return;
       const updated = await updateBookingStatus(el.dataset.acceptBooking, 'confirmed');
       if (updated){
         state.bookings = state.bookings.map(b => b.id === updated.id ? updated : b);
