@@ -1064,6 +1064,12 @@ function distanceKm(lat1, lng1, lat2, lng2){
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+function directionsUrl(lat, lng){
+  // Opens the driver's own Google Maps app (or web) with turn-by-turn
+  // directions to this spot, using their current location as the start.
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+}
+
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1112,6 +1118,7 @@ function renderListingsCardsHtml(){
           <div>
             <p class="card-address">${l.address}</p>
             <p class="card-owner">${t('host_label')}: ${l.owner}${l._dist != null ? ` · <span class="distance-tag">${l._dist.toFixed(1)} ${t('km_away')}</span>` : ''}</p>
+            ${l.lat && l.lng ? `<a href="${directionsUrl(l.lat, l.lng)}" target="_blank" rel="noopener" style="font-size:14px; color:var(--sky-deep); text-decoration:underline; display:inline-block; margin-top:2px;">🧭 Get directions</a>` : ''}
           </div>
         </div>
         <span class="card-price">₱${l.price}<small>/hr</small></span>
@@ -1201,7 +1208,7 @@ function updateSearchMapMarkers(){
   visible.forEach(l => {
     const marker = L.marker([l.lat, l.lng]).addTo(searchMarkersLayer);
     const isOwnListing = state.user && l.user_id === state.user.id;
-    const popupHtml = `<p class="popup-title">${l.address}</p><p class="popup-price">₱${l.price}/hr · ${l.owner}</p>${isOwnListing ? '' : `<button class="popup-btn" onclick="window.__bookFromMap('${l.id}')">Book</button>`}`;
+    const popupHtml = `<p class="popup-title">${l.address}</p><p class="popup-price">₱${l.price}/hr · ${l.owner}</p><a href="${directionsUrl(l.lat, l.lng)}" target="_blank" rel="noopener" style="font-size:13px; color:var(--sky-deep); text-decoration:underline; display:inline-block; margin-bottom:6px;">🧭 Get directions</a><br/>${isOwnListing ? '' : `<button class="popup-btn" onclick="window.__bookFromMap('${l.id}')">Book</button>`}`;
     marker.bindPopup(popupHtml);
   });
 }
@@ -1477,13 +1484,16 @@ function renderBookings(){
   if (mine.length === 0){
     html += `<p class="empty">${t('no_bookings_yet')}</p>`;
   }
-  html += mine.map(b => `
+  html += mine.map(b => {
+    const listingForBooking = state.listings.find(l => l.id === b.listingId) || {};
+    return `
     <div class="ticket">
       <div class="ticket-main">
         <p class="ticket-eyebrow">Booking</p>
         <p class="ticket-addr">${b.address}</p>
         <p class="ticket-time">${b.date} · ${b.start}–${b.end}</p>
         <span class="status-badge ${b.status}" style="margin-top:4px;">${t('status_' + b.status)}</span>
+        ${listingForBooking.lat && listingForBooking.lng ? `<a href="${directionsUrl(listingForBooking.lat, listingForBooking.lng)}" target="_blank" rel="noopener" style="font-size:14px; color:var(--sky-deep); text-decoration:underline; display:block; margin-top:6px;">🧭 Get directions</a>` : ''}
         <div class="rating-row">
           <span class="rating-label">${t('rate_this_spot')}</span>
           <span class="stars" data-rate="${b.id}">
@@ -1491,7 +1501,7 @@ function renderBookings(){
           </span>
         </div>
         <button class="report-link" data-report="${b.id}">${t('report_link')}</button>
-        <button class="report-link" data-chat-booking="${b.id}" data-chat-other="${(state.listings.find(l=>l.id===b.listingId)||{}).owner || 'Owner'}">${t('message_btn')}</button>
+        <button class="report-link" data-chat-booking="${b.id}" data-chat-other="${listingForBooking.owner || 'Owner'}">${t('message_btn')}</button>
         ${state.unreadBookings.has(b.id) ? `<span class="status-badge pending" style="margin-left:6px;">🔴 ${t('unread_badge')}</span>` : ''}
       </div>
       <div class="ticket-divider"></div>
@@ -1500,7 +1510,7 @@ function renderBookings(){
         <button class="ticket-cancel" data-cancel="${b.id}">${t('cancel_btn')}</button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
   return html;
 }
 
