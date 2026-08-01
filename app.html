@@ -583,9 +583,13 @@ const TRANSLATIONS = {
     price_per_hour: 'Price per hour (₱)',
     features_label: 'Features',
     features_hint: 'Select the features available to renters at your spot.',
+    wifi_instructions_label: 'WiFi password',
+    wifi_instructions_placeholder: 'e.g. WiFi name: Sirong_Guest, Password: parking123',
+    restroom_instructions_label: 'Restroom access instructions',
+    restroom_instructions_placeholder: 'e.g. Code is 1234, ask the guard for the key',
+    private_instructions_hint: 'Only shown to the renter once you confirm their booking — not visible to anyone browsing.',
     instant_book_checkbox: 'Instant book (no approval needed)',
     access_notes: 'Access notes (optional)',
-    access_notes_hint: 'Selected WiFi-ready or Restroom access above? Add the WiFi password or restroom code here so renters know how to use it.',
     preferred_payment: 'Preferred payment',
     availability_calendar: 'Availability calendar',
     avail_cal_hint: 'Click a date to set which hours are open or closed for your space. Dates with a colored dot already have hours set.',
@@ -744,9 +748,13 @@ const TRANSLATIONS = {
     price_per_hour: 'Presyo per hour (₱)',
     features_label: 'Features',
     features_hint: 'Piliin ang mga features na available sa mga renters sa iyong space.',
+    wifi_instructions_label: 'WiFi password',
+    wifi_instructions_placeholder: 'hal. WiFi name: Sirong_Guest, Password: parking123',
+    restroom_instructions_label: 'Instructions para sa restroom access',
+    restroom_instructions_placeholder: 'hal. Code ay 1234, tanungin ang guard para sa susi',
+    private_instructions_hint: 'Makikita lang ng renter kapag na-confirm mo na ang booking nila — hindi ito makikita ng ibang nag-bo-browse.',
     instant_book_checkbox: 'Instant book (walang hintay na approval)',
     access_notes: 'Access notes (optional)',
-    access_notes_hint: 'Pinili ang WiFi-ready o Restroom access sa itaas? Ilagay dito ang WiFi password o restroom code para malaman ng renters kung paano gamitin.',
     preferred_payment: 'Preferred payment',
     availability_calendar: 'Availability calendar',
     avail_cal_hint: 'I-click ang isang petsa para i-set kung anong oras bukas o sarado ang space mo. Ang mga petsang may kulay na tuldok ay may na-set nang oras.',
@@ -1335,12 +1343,21 @@ function renderListForm(){
       <div class="chip-row" id="fFeatures">
         ${FEATURES.map(f => `<span class="chip ${e && e.features && e.features.includes(f.id) ? 'active' : ''}" data-formfeat="${f.id}">${featureIcon(f.id)} ${featureLabel(f.id)}</span>`).join('')}
       </div>
+      <div class="field" id="fWifiInstructionsWrap" style="display:${e && e.features && e.features.includes('wifi') ? 'block' : 'none'}; margin-top:10px;">
+        <label>${t('wifi_instructions_label')}</label>
+        <p class="map-hint" style="margin-top:-2px;">${t('private_instructions_hint')}</p>
+        <input id="fWifiInstructions" placeholder="${t('wifi_instructions_placeholder')}" value="${e && e.wifi_instructions ? e.wifi_instructions : ''}" />
+      </div>
+      <div class="field" id="fRestroomInstructionsWrap" style="display:${e && e.features && e.features.includes('restroom') ? 'block' : 'none'}; margin-top:10px;">
+        <label>${t('restroom_instructions_label')}</label>
+        <p class="map-hint" style="margin-top:-2px;">${t('private_instructions_hint')}</p>
+        <input id="fRestroomInstructions" placeholder="${t('restroom_instructions_placeholder')}" value="${e && e.restroom_instructions ? e.restroom_instructions : ''}" />
+      </div>
     </div>
     <label class="checkline"><input type="checkbox" id="fInstant" ${!e || e.instant ? 'checked' : ''} /> ${t('instant_book_checkbox')}</label>
     <div class="field">
       <label>${t('access_notes')}</label>
-      <p class="map-hint" style="margin-top:-2px;">${t('access_notes_hint')}</p>
-      <input id="fNotes" placeholder="Gate code, WiFi password, restroom code, ask for guard" value="${e && e.notes ? e.notes : ''}" />
+      <input id="fNotes" placeholder="Gate code, landmark, ask for guard" value="${e && e.notes ? e.notes : ''}" />
     </div>
     <div class="field">
       <label>${t('preferred_payment')}</label>
@@ -1523,6 +1540,8 @@ function renderBookings(){
         <p class="ticket-time">${b.date} · ${b.start}–${b.end}</p>
         <span class="status-badge ${b.status}" style="margin-top:4px;">${t('status_' + b.status)}</span>
         ${listingForBooking.lat && listingForBooking.lng ? `<a href="${directionsUrl(listingForBooking.lat, listingForBooking.lng)}" target="_blank" rel="noopener" style="font-size:14px; color:var(--sky-deep); text-decoration:underline; display:block; margin-top:6px;">🧭 Get directions</a>` : ''}
+        ${b.status === 'confirmed' && listingForBooking.wifi_instructions ? `<p style="font-size:13px; background:#E4F2FA; color:var(--sky-deep); border-radius:8px; padding:8px 10px; margin-top:8px;">📶 ${t('wifi_instructions_label')}: ${listingForBooking.wifi_instructions}</p>` : ''}
+        ${b.status === 'confirmed' && listingForBooking.restroom_instructions ? `<p style="font-size:13px; background:#E4F2FA; color:var(--sky-deep); border-radius:8px; padding:8px 10px; margin-top:8px;">🚻 ${t('restroom_instructions_label')}: ${listingForBooking.restroom_instructions}</p>` : ''}
         <div class="rating-row">
           <span class="rating-label">${t('rate_this_spot')}</span>
           <span class="stars" data-rate="${b.id}">
@@ -1825,7 +1844,18 @@ function attachContentListeners(){
   });
 
   document.querySelectorAll('[data-formfeat]').forEach(el => {
-    el.onclick = () => { el.classList.toggle('active'); };
+    el.onclick = () => {
+      el.classList.toggle('active');
+      const isActive = el.classList.contains('active');
+      if (el.dataset.formfeat === 'wifi'){
+        const wrap = document.getElementById('fWifiInstructionsWrap');
+        if (wrap) wrap.style.display = isActive ? 'block' : 'none';
+      }
+      if (el.dataset.formfeat === 'restroom'){
+        const wrap = document.getElementById('fRestroomInstructionsWrap');
+        if (wrap) wrap.style.display = isActive ? 'block' : 'none';
+      }
+    };
   });
 
   const findNear = document.getElementById('findNearMe');
@@ -2105,6 +2135,10 @@ function submitListing(){
   if (!state.formPin) { showToast(t('pin_location_first')); return; }
   const features = Array.from(document.querySelectorAll('[data-formfeat].active')).map(el => el.dataset.formfeat);
   const notes = document.getElementById('fNotes').value.trim();
+  const wifiInstructionsEl = document.getElementById('fWifiInstructions');
+  const restroomInstructionsEl = document.getElementById('fRestroomInstructions');
+  const wifiInstructions = features.includes('wifi') && wifiInstructionsEl ? wifiInstructionsEl.value.trim() : null;
+  const restroomInstructions = features.includes('restroom') && restroomInstructionsEl ? restroomInstructionsEl.value.trim() : null;
   const instant = document.getElementById('fInstant').checked;
   const payment = document.getElementById('fPayment').value;
   const sizeInfo = document.getElementById('fSize').value;
@@ -2114,7 +2148,7 @@ function submitListing(){
 
   async function finish(photos){
     const hasNewPhotos = photos.length > 0;
-    const fields = { address, price, features, notes, owner, instant, payment, size_info: sizeInfo || null, lat, lng };
+    const fields = { address, price, features, notes, owner, instant, payment, size_info: sizeInfo || null, lat, lng, wifi_instructions: wifiInstructions, restroom_instructions: restroomInstructions };
     if (hasNewPhotos) fields.photos = photos;
 
     if (editing){
