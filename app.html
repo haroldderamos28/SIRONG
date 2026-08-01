@@ -521,6 +521,7 @@ const ICONS = {
   cctv: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="14" height="10" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M16 10l6-3v10l-6-3"/></svg>',
   restroom: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M7 10a5 5 0 0110 0v8a2 2 0 01-2 2H9a2 2 0 01-2-2z"/></svg>',
   wifi: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a14 14 0 0120 0"/><path d="M5.5 12.5a9 9 0 0113 0"/><path d="M9 16.5a4 4 0 016 0"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></svg>',
+  helper: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/><path d="M19 8.5l1.5 1.5-1.5 1.5"/></svg>',
   pin: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
 };
 
@@ -531,6 +532,7 @@ const FEATURES = [
   { id: "cctv", label: "May CCTV" },
   { id: "restroom", label: "May restroom" },
   { id: "wifi", label: "WiFi-ready" },
+  { id: "helper", label: "May katulong" },
 ];
 
 const SEED_LISTINGS = [
@@ -552,7 +554,7 @@ const MONTH_NAMES = {
 
 const TRANSLATIONS = {
   en: {
-    feature_covered: 'Covered', feature_gated: 'Secured/gated', feature_moto: 'Motorcycle OK', feature_cctv: 'CCTV', feature_restroom: 'Restroom access', feature_wifi: 'WiFi-ready',
+    feature_covered: 'Covered', feature_gated: 'Secured/gated', feature_moto: 'Motorcycle OK', feature_cctv: 'CCTV', feature_restroom: 'Restroom access', feature_wifi: 'WiFi-ready', feature_helper: 'Helper available',
     find_spots_near_me: '📍 Find me a parking space',
     no_match_filters: 'No spots match your filters.',
     custom_avail_prefix: '📅 Has custom availability on', custom_avail_suffix: 'date(s) — check Book',
@@ -583,6 +585,7 @@ const TRANSLATIONS = {
     features_hint: 'Select the features available to renters at your spot.',
     instant_book_checkbox: 'Instant book (no approval needed)',
     access_notes: 'Access notes (optional)',
+    access_notes_hint: 'Selected WiFi-ready or Restroom access above? Add the WiFi password or restroom code here so renters know how to use it.',
     preferred_payment: 'Preferred payment',
     availability_calendar: 'Availability calendar',
     avail_cal_hint: 'Click a date to set which hours are open or closed for your space. Dates with a colored dot already have hours set.',
@@ -712,7 +715,7 @@ const TRANSLATIONS = {
     notifications_disabled_toast: 'Notifications turned off.',
   },
   tl: {
-    feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV', feature_restroom: 'May restroom', feature_wifi: 'May WiFi',
+    feature_covered: 'May bubong', feature_gated: 'Secured/gated', feature_moto: 'Motor ok', feature_cctv: 'May CCTV', feature_restroom: 'May restroom', feature_wifi: 'May WiFi', feature_helper: 'May katulong',
     find_spots_near_me: '📍 Hanapin ako ng parking space',
     no_match_filters: 'Walang spot na match sa filters mo.',
     custom_avail_prefix: '📅 May customized availability sa', custom_avail_suffix: 'na petsa — tingnan sa Book',
@@ -743,6 +746,7 @@ const TRANSLATIONS = {
     features_hint: 'Piliin ang mga features na available sa mga renters sa iyong space.',
     instant_book_checkbox: 'Instant book (walang hintay na approval)',
     access_notes: 'Access notes (optional)',
+    access_notes_hint: 'Pinili ang WiFi-ready o Restroom access sa itaas? Ilagay dito ang WiFi password o restroom code para malaman ng renters kung paano gamitin.',
     preferred_payment: 'Preferred payment',
     availability_calendar: 'Availability calendar',
     avail_cal_hint: 'I-click ang isang petsa para i-set kung anong oras bukas o sarado ang space mo. Ang mga petsang may kulay na tuldok ay may na-set nang oras.',
@@ -1333,7 +1337,11 @@ function renderListForm(){
       </div>
     </div>
     <label class="checkline"><input type="checkbox" id="fInstant" ${!e || e.instant ? 'checked' : ''} /> ${t('instant_book_checkbox')}</label>
-    <div class="field"><label>${t('access_notes')}</label><input id="fNotes" placeholder="Gate code, landmark, ask for guard" value="${e && e.notes ? e.notes : ''}" /></div>
+    <div class="field">
+      <label>${t('access_notes')}</label>
+      <p class="map-hint" style="margin-top:-2px;">${t('access_notes_hint')}</p>
+      <input id="fNotes" placeholder="Gate code, WiFi password, restroom code, ask for guard" value="${e && e.notes ? e.notes : ''}" />
+    </div>
     <div class="field">
       <label>${t('preferred_payment')}</label>
       <select id="fPayment">
