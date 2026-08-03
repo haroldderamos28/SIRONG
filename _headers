@@ -1,0 +1,14 @@
+# Cloudflare Pages reads this file automatically to set custom HTTP headers.
+# This forces browsers (especially mobile Chrome) to always check for the
+# latest version of these files instead of using a stale cached copy —
+# which is what was causing buttons to stop responding until a manual
+# pull-to-refresh forced a fresh reload.
+
+/app.html
+  Cache-Control: no-cache, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/sw.js
+  Cache-Control: no-cache, must-revalidate
